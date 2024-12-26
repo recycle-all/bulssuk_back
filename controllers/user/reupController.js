@@ -2,7 +2,7 @@ const database = require('../../database/database');
 const dotenv = require('dotenv');
 dotenv.config();
 
-// 회사 리스트 조회
+// 기업 사진, 이름 조회
 const getCompanies = async (req, res) => {
   try {
     const query = `
@@ -18,12 +18,12 @@ const getCompanies = async (req, res) => {
   }
 };
 
-// 회사 상세 조회
+// 기업 상세 조회
 const getCompanyDetails = async (req, res) => {
   const { company_id } = req.params;
 
   try {
-    // 회사 정보 조회
+    // 기업 정보 조회
     const companyQuery = `
       SELECT company_img, company_name, company_content
       FROM recycling_company
@@ -35,7 +35,7 @@ const getCompanyDetails = async (req, res) => {
       return res.status(404).json({ message: 'Company not found' });
     }
 
-    // 제품 정보 조회
+    // 기업 제품 정보 조회
     const productQuery = `
       SELECT product_img, product_name
       FROM company_product
