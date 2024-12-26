@@ -9,4 +9,4 @@ const pool = new Pool({
   database: process.env.DB_NAME,
 });
 
-module.exports = pool; // {}로 감쌀 경우 index.js 작성 시 database.pool.query 변수를 함께 작성할 것
+module.exports = pool; // {}로 감쌀 경우 index.js 작성 시 database.pool.query 변수를 함께 작성할 것\

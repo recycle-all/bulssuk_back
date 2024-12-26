@@ -33,7 +33,7 @@ app.get('/', (req, res) => {
 
 // app.use(require('./routes/admin/adminRoutes'));
 app.use(require('./routes/user/userRoutes'));
-// app.use(require('./routes/dealer/dealerRoutes'));
+app.use(require('./routes/user/reupRoute'));
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
