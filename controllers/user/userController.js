@@ -138,16 +138,16 @@ const userLogin = async (req, res) => {
 
     // 데이터베이스에서 사용자 정보 가져오기
     const result = await database.query(
-      `SELECT * FROM users WHERE user_id = $1`,
+      `SELECT user_id, user_pw, user_name, user_email FROM users WHERE user_id = $1`,
       [user_id]
     );
 
-    const user = result.rows[0];
-
     // 사용자 존재 여부 확인
-    if (!user) {
+    if (result.rows.length === 0) {
       return res.status(401).json({ message: '아이디가 존재하지 않습니다.' });
     }
+
+    const user = result.rows[0];
 
     // 비밀번호 확인
     const isPasswordMatch = await bcrypt.compare(user_pw, user.user_pw);
@@ -162,12 +162,14 @@ const userLogin = async (req, res) => {
       { expiresIn: '1d' }
     );
 
-    // 로그인 성공 응답
+    // 로그인 성공 응답 (name과 email 포함)
     return res.json({
       message: '사용자님 로그인 하였습니다.',
       token,
       userId: user.user_id,
       userType: 'user',
+      name: user.user_name, // 사용자 이름
+      email: user.user_email, // 사용자 이메일
     });
   } catch (error) {
     // 서버 오류 처리
@@ -294,6 +296,63 @@ const resetPassword = async (req, res) => {
   }
 };
 
+// 회원정보수정 - 비밀번호 확인
+const verifyPassword = async (req, res) => {
+  try {
+    const { user_id, current_password } = req.body;
+
+    // 사용자 조회
+    const result = await database.query(
+      `SELECT user_pw FROM users WHERE user_id = $1`,
+      [user_id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+    }
+
+    const user = result.rows[0];
+    const isPasswordMatch = await bcrypt.compare(
+      current_password,
+      user.user_pw
+    );
+
+    if (!isPasswordMatch) {
+      return res.status(401).json({ message: '비밀번호가 맞지 않습니다.' });
+    }
+
+    return res.status(200).json({ message: '비밀번호 확인 성공' });
+  } catch (error) {
+    console.error('Error verifying password:', error.message);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+};
+
+const updatePassword = async (req, res) => {
+  try {
+    const { user_id, new_password } = req.body;
+
+    // 새 비밀번호 해싱
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(new_password, salt);
+
+    // 비밀번호 업데이트
+    const result = await database.query(
+      `UPDATE users SET user_pw = $1 WHERE user_id = $2`,
+      [hashedPassword, user_id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+    }
+
+    res.status(200).json({ message: '비밀번호가 성공적으로 변경되었습니다.' });
+  } catch (error) {
+    console.error('Error resetting password:', error.message);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+};
+
 module.exports = {
   emailAuth,
   verifyNumber,
@@ -304,4 +363,6 @@ module.exports = {
   passwordEmailAuth,
   passwordVerifyNumber,
   resetPassword,
+  verifyPassword,
+  updatePassword,
 };
