@@ -34,6 +34,7 @@ app.get('/', (req, res) => {
 // app.use(require('./routes/admin/adminRoutes'));
 app.use(require('./routes/user/userRoutes'));
 app.use(require('./routes/user/reupRoute'));
+app.use(require('./routes/user/guideRoute'));
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
