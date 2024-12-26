@@ -206,6 +206,94 @@ const findId = async (req, res) => {
   }
 };
 
+// 비밀번호 찾기 이메일 인증
+const passwordEmailAuth = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: '이메일을 제공해야 합니다.' });
+  }
+
+  const emailRandomNumber = Math.floor(Math.random() * 899999) + 100000;
+
+  try {
+    const mailOption = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: '비밀번호 찾기 인증번호',
+      html: `<h1>인증번호:</h1> <p>${emailRandomNumber}</p>`,
+    };
+
+    await smtpTransporter.sendMail(mailOption);
+
+    authNumbers[email] = {
+      code: emailRandomNumber,
+      expires: Date.now() + 5 * 60000,
+      purpose: 'findPassword',
+    };
+
+    res.status(200).json({ message: '인증번호가 이메일로 발송되었습니다.' });
+  } catch (error) {
+    console.error('이메일 전송 오류:', error);
+    res.status(500).json({ message: '이메일 전송에 실패했습니다.' });
+  }
+};
+
+// 비밀번호 찾기 인증번호
+const passwordVerifyNumber = (req, res) => {
+  const { email, code } = req.body;
+
+  if (!authNumbers[email]) {
+    return res.status(400).json('인증번호가 존재하지 않거나 만료되었습니다.');
+  }
+
+  const authInfo = authNumbers[email];
+
+  if (authInfo.purpose !== 'findPassword') {
+    return res.status(400).json('요청 목적이 올바르지 않습니다.');
+  }
+
+  if (Date.now() > authInfo.expires) {
+    delete authNumbers[email];
+    return res.status(400).json('인증번호가 만료되었습니다.');
+  }
+
+  if (String(authInfo.code) === String(code)) {
+    delete authNumbers[email];
+    return res.status(200).json('인증 성공');
+  } else {
+    return res.status(400).json('인증번호가 일치하지 않습니다.');
+  }
+};
+
+// 비밀번호 재설정
+const resetPassword = async (req, res) => {
+  try {
+    const { user_id, new_password } = req.body;
+
+    if (!user_id || !new_password) {
+      return res.status(400).json({ message: '필수 입력값이 누락되었습니다.' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(new_password, salt);
+
+    const result = await database.query(
+      `UPDATE users SET user_pw = $1 WHERE user_id = $2`,
+      [hashedPassword, user_id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+    }
+
+    res.status(200).json({ message: '비밀번호가 성공적으로 변경되었습니다.' });
+  } catch (error) {
+    console.error('Error resetting password:', error.message);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+};
+
 module.exports = {
   emailAuth,
   verifyNumber,
@@ -213,4 +301,7 @@ module.exports = {
   idCheck,
   userLogin,
   findId,
+  passwordEmailAuth,
+  passwordVerifyNumber,
+  resetPassword,
 };
