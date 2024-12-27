@@ -353,6 +353,56 @@ const updatePassword = async (req, res) => {
   }
 };
 
+const authenticateUser = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ message: '인증이 필요합니다.' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    req.user = decoded; // user_no와 기타 정보를 req.user에 저장
+    next();
+  } catch (error) {
+    res.status(401).json({ message: '유효하지 않은 토큰입니다.' });
+  }
+};
+
+// 1:1 문의 등록
+const createInquiry = async (req, res) => {
+  try {
+    const { question_title, question_content } = req.body;
+
+    // 인증된 사용자 정보에서 user_no 가져오기 (예: JWT 또는 세션에서)
+    const user_no = req.user.user_no; // req.user는 미들웨어에서 추가된 사용자 정보
+
+    // 입력값 검증
+    if (!question_title || !question_content) {
+      return res.status(400).json({ message: '제목과 내용을 입력해주세요.' });
+    }
+
+    // 데이터베이스에 문의 등록
+    const result = await database.query(
+      `INSERT INTO inquiry (user_no, question_title, question_content) 
+       VALUES ($1, $2, $3) 
+       RETURNING question_no, created_at`,
+      [user_no, question_title, question_content]
+    );
+
+    const inquiry = result.rows[0];
+
+    res.status(201).json({
+      message: '문의가 성공적으로 등록되었습니다.',
+      question_no: inquiry.question_no,
+      created_at: inquiry.created_at,
+    });
+  } catch (error) {
+    console.error('Error creating inquiry:', error.message);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+};
+
 module.exports = {
   emailAuth,
   verifyNumber,
@@ -365,4 +415,6 @@ module.exports = {
   resetPassword,
   verifyPassword,
   updatePassword,
+  createInquiry,
+  authenticateUser,
 };

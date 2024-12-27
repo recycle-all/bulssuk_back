@@ -1,4 +1,6 @@
 const router = require('express').Router();
+const dotenv = require('dotenv');
+
 const {
   emailAuth,
   verifyNumber,
@@ -11,6 +13,8 @@ const {
   resetPassword,
   verifyPassword,
   updatePassword,
+  createInquiry,
+  authenticateUser,
 } = require('../../controllers/user/userController');
 
 router.post('/send_email', emailAuth); // 이메일 인증번호 전송
@@ -24,4 +28,6 @@ router.post('/password-verify-number', passwordVerifyNumber); // 비밀번호 �
 router.post('/reset-password', resetPassword); // 비밀번호 재설정
 router.post('/verify-password', verifyPassword); // 비밀번호 확인
 router.post('/update-password', updatePassword); // 비밀번호 변경
+router.post('/inquiry', authenticateUser, createInquiry); // 1:1문의 등록
+
 module.exports = router;
