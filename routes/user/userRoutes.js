@@ -13,6 +13,7 @@ const {
   verifyPassword,
   updatePassword,
   createInquiry,
+  getInquiries,
 } = require('../../controllers/user/userController');
 const authenticateToken = require('../../middleware/authenticateToken');
 
@@ -33,5 +34,6 @@ router.post('/update-password', updatePassword); // 비밀번호 변경
 
 // 1:1 문의 관련 라우트
 router.post('/inquiry', authenticateToken, createInquiry); // 인증된 사용자만 문의 등록 가능
+router.get('/get-inquiries', authenticateToken, getInquiries); // 사용자 문의 내역 조회
 
 module.exports = router;

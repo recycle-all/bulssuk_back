@@ -135,35 +135,46 @@ const userLogin = async (req, res) => {
   try {
     const { user_id, user_pw } = req.body;
 
-    const result = await database.query(
-      `SELECT user_id, user_pw, user_name, user_email, user_no FROM users WHERE user_id = $1`,
-      [user_id]
-    );
+    // 사용자 조회
+    const query = `
+      SELECT user_id, user_pw, user_name, user_email, user_no 
+      FROM users 
+      WHERE user_id = $1
+    `;
+    const result = await database.query(query, [user_id]);
 
+    // 아이디 존재 여부 확인
     if (result.rows.length === 0) {
-      return res.status(401).json({ message: '아이디가 존재하지 않습니다.' });
+      return res
+        .status(401)
+        .json({ message: '아이디 또는 비밀번호가 일치하지 않습니다.' });
     }
 
     const user = result.rows[0];
 
+    // 비밀번호 검증
     const isPasswordMatch = await bcrypt.compare(user_pw, user.user_pw);
     if (!isPasswordMatch) {
-      return res.status(401).json({ message: '비밀번호가 맞지 않습니다.' });
+      return res
+        .status(401)
+        .json({ message: '아이디 또는 비밀번호가 일치하지 않습니다.' });
     }
 
+    // JWT 토큰 생성
     const token = jwt.sign(
       {
         userId: user.user_id,
         userNo: user.user_no,
-        userType: 'user',
+        userType: 'user', // 사용자 타입 (필요시 수정)
       },
-      process.env.SECRET_KEY,
-      { expiresIn: '1d' }
+      process.env.SECRET_KEY || 'default_secret_key', // 환경 변수에서 키 가져오기
+      { expiresIn: '1d' } // 만료 시간: 1일
     );
 
-    return res.json({
-      message: '사용자님 로그인 하였습니다.',
-      token,
+    // 응답 데이터 반환
+    return res.status(200).json({
+      message: '로그인 성공!',
+      token, // JWT 토큰
       userId: user.user_id,
       userNo: user.user_no,
       userType: 'user',
@@ -172,7 +183,9 @@ const userLogin = async (req, res) => {
     });
   } catch (error) {
     console.error('서버 오류:', error.message);
-    return res.status(500).json({ error: error.message });
+    return res
+      .status(500)
+      .json({ message: '서버 오류가 발생했습니다.', error: error.message });
   }
 };
 
@@ -399,6 +412,49 @@ const createInquiry = async (req, res) => {
   }
 };
 
+// 문의 내역 조회 API
+const getInquiries = async (req, res) => {
+  try {
+    const userNo = req.user?.userNo; // JWT에서 가져온 사용자 고유 번호
+
+    if (!userNo) {
+      return res.status(401).json({ message: '로그인이 필요합니다.' });
+    }
+
+    // 문의 내역과 답변 조회
+    const query = `
+    SELECT 
+      i.question_no,
+      i.question_title,
+      i.question_content,
+      TO_CHAR(i.created_at, 'YY-MM-DD HH24:MI') AS created_at,
+      i.is_answered,
+      a.answer_content,
+      TO_CHAR(a.created_at, 'YY-MM-DD HH24:MI') AS answer_created_at
+    FROM inquiry i
+    LEFT JOIN answer a ON i.question_no = a.question_no
+    WHERE i.user_no = $1
+    ORDER BY i.created_at DESC
+  `;
+    const values = [userNo];
+    const result = await database.query(query, values);
+
+    // 응답 데이터 반환
+    return res.status(200).json({
+      message: '문의 내역이 성공적으로 조회되었습니다.',
+      inquiries: result.rows,
+    });
+  } catch (error) {
+    console.error('Error fetching inquiries:', error.message);
+    return res.status(500).json({
+      message: '서버 오류가 발생했습니다.',
+      error: error.message,
+    });
+  }
+};
+
+module.exports = { getInquiries };
+
 module.exports = {
   emailAuth,
   verifyNumber,
@@ -412,4 +468,5 @@ module.exports = {
   verifyPassword,
   updatePassword,
   createInquiry,
+  getInquiries,
 };
