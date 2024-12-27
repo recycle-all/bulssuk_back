@@ -11,7 +11,6 @@ const port = 8080;
 
 app.use(express.json()); // JSON 요청 파싱
 app.use(express.urlencoded({ extended: true })); // URL-encoded 요청 처리
-app.use(bodyParser.json()); // JSON 요청을 처리하도록 body-parser 설정
 app.use(cookieParser()); // cookie-parser 미들웨어 추가
 
 app.use(
@@ -35,6 +34,7 @@ app.get('/', (req, res) => {
 app.use(require('./routes/user/userRoutes'));
 app.use(require('./routes/user/reupRoute'));
 app.use(require('./routes/user/guideRoute'));
+app.use(require('./routes/user/calendarRoute'));
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
