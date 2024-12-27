@@ -8,9 +8,9 @@ const {
 
 const router = express.Router();
 
-router.get('/attendance/:user_no', getAttendance);
+router.get('/attendance/:user_id', getAttendance);
 router.post('/attendance', updateAttendance);
 router.post('/alarm', addAlarm);
-router.get('/alarm/:user_no', getAlarms);
+router.get('/alarm/:user_id', getAlarms);
 
 module.exports = router;
