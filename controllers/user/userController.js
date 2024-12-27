@@ -133,46 +133,44 @@ const verifyNumber = (req, res) => {
 
 const userLogin = async (req, res) => {
   try {
-    // 요청에서 사용자 입력값 가져오기
     const { user_id, user_pw } = req.body;
 
-    // 데이터베이스에서 사용자 정보 가져오기
     const result = await database.query(
-      `SELECT user_id, user_pw, user_name, user_email FROM users WHERE user_id = $1`,
+      `SELECT user_id, user_pw, user_name, user_email, user_no FROM users WHERE user_id = $1`,
       [user_id]
     );
 
-    // 사용자 존재 여부 확인
     if (result.rows.length === 0) {
       return res.status(401).json({ message: '아이디가 존재하지 않습니다.' });
     }
 
     const user = result.rows[0];
 
-    // 비밀번호 확인
     const isPasswordMatch = await bcrypt.compare(user_pw, user.user_pw);
     if (!isPasswordMatch) {
       return res.status(401).json({ message: '비밀번호가 맞지 않습니다.' });
     }
 
-    // JWT 토큰 생성
     const token = jwt.sign(
-      { userId: user.user_id, userType: 'user' },
+      {
+        userId: user.user_id,
+        userNo: user.user_no,
+        userType: 'user',
+      },
       process.env.SECRET_KEY,
       { expiresIn: '1d' }
     );
 
-    // 로그인 성공 응답 (name과 email 포함)
     return res.json({
       message: '사용자님 로그인 하였습니다.',
       token,
       userId: user.user_id,
+      userNo: user.user_no,
       userType: 'user',
-      name: user.user_name, // 사용자 이름
-      email: user.user_email, // 사용자 이메일
+      name: user.user_name,
+      email: user.user_email,
     });
   } catch (error) {
-    // 서버 오류 처리
     console.error('서버 오류:', error.message);
     return res.status(500).json({ error: error.message });
   }
@@ -353,43 +351,36 @@ const updatePassword = async (req, res) => {
   }
 };
 
-const authenticateUser = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ message: '인증이 필요합니다.' });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.SECRET_KEY);
-    req.user = decoded; // user_no와 기타 정보를 req.user에 저장
-    next();
-  } catch (error) {
-    res.status(401).json({ message: '유효하지 않은 토큰입니다.' });
-  }
-};
-
 // 1:1 문의 등록
 const createInquiry = async (req, res) => {
   try {
     const { question_title, question_content } = req.body;
 
-    // 인증된 사용자 정보에서 user_no 가져오기 (예: JWT 또는 세션에서)
-    const user_no = req.user.user_no; // req.user는 미들웨어에서 추가된 사용자 정보
+    // req.user에서 user_no 가져오기 (토큰 인증으로 설정된 사용자 정보)
+    const user_no = req.user?.userNo;
 
-    // 입력값 검증
+    // 사용자 입력값 검증
+    if (!user_no) {
+      return res.status(401).json({ message: '로그인이 필요합니다.' });
+    }
+
     if (!question_title || !question_content) {
-      return res.status(400).json({ message: '제목과 내용을 입력해주세요.' });
+      return res
+        .status(400)
+        .json({ message: '문의 제목과 내용을 모두 입력해주세요.' });
     }
 
     // 데이터베이스에 문의 등록
-    const result = await database.query(
-      `INSERT INTO inquiry (user_no, question_title, question_content) 
-       VALUES ($1, $2, $3) 
-       RETURNING question_no, created_at`,
-      [user_no, question_title, question_content]
-    );
+    const query = `
+      INSERT INTO inquiry (user_no, question_title, question_content) 
+      VALUES ($1, $2, $3) 
+      RETURNING question_no, created_at
+    `;
+    const values = [user_no, question_title, question_content];
 
+    const result = await database.query(query, values);
+
+    // 삽입된 문의 데이터 반환
     const inquiry = result.rows[0];
 
     res.status(201).json({
@@ -399,7 +390,12 @@ const createInquiry = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating inquiry:', error.message);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+
+    // 에러 메시지 상세 정보 추가 (디버깅용, 실제로는 최소화)
+    res.status(500).json({
+      message: '서버 오류가 발생했습니다. 관리자에게 문의하세요.',
+      error: error.message,
+    });
   }
 };
 
@@ -416,5 +412,4 @@ module.exports = {
   verifyPassword,
   updatePassword,
   createInquiry,
-  authenticateUser,
 };

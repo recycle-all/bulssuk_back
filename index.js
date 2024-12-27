@@ -27,7 +27,7 @@ app.use('/middleware-token', authenticateToken, (req, res) => {
   res.send('미들웨어 토큰 연결');
 });
 
-// 관리자 인증 미들웨어 
+// 관리자 인증 미들웨어
 // 인증 미들웨어 추가 (토큰을 쿠키에서 가져오기)
 app.use('/middleware-tokens', authenticateTokens, (req, res) => {
   res.send('미들웨어 토큰 연결');
@@ -42,9 +42,6 @@ app.use(require('./routes/user/userRoutes'));
 app.use(require('./routes/user/reupRoute'));
 app.use(require('./routes/user/guideRoute'));
 app.use(require('./routes/user/calendarRoute'));
-
-
-
 
 // 관리자 routes
 app.use(require('./routes/admin/adminRoute'));
