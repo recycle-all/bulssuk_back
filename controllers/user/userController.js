@@ -220,7 +220,7 @@ const findId = async (req, res) => {
 };
 
 // 비밀번호 찾기 이메일 인증
-const passwordEmailAuth = async (req, res) => {
+const passwordEmail = async (req, res) => {
   const { email } = req.body;
 
   if (!email) {
@@ -456,7 +456,96 @@ const getInquiries = async (req, res) => {
   }
 };
 
-module.exports = { getInquiries };
+// 토탈 포인트
+const getTotalPoints = async (req, res) => {
+  try {
+    // 토큰에서 userNo 가져오기
+    const userNo = req.user?.userNo;
+
+    // userNo가 없는 경우 에러 처리
+    if (!userNo) {
+      return res
+        .status(400)
+        .json({ message: '유효하지 않은 사용자 요청입니다.' });
+    }
+
+    // SQL 쿼리: 특정 유저의 총 포인트 조회
+    const query = `
+      SELECT point_total 
+      FROM point 
+      WHERE user_no = $1 
+      ORDER BY created_at DESC 
+      LIMIT 1;
+    `;
+    const values = [userNo];
+    const result = await database.query(query, values);
+
+    // 데이터 반환
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: '포인트 내역이 없습니다.' });
+    }
+
+    const totalPoints = result.rows[0].point_total;
+    return res.status(200).json({
+      message: '총 포인트 조회 성공',
+      totalPoints,
+    });
+  } catch (error) {
+    console.error('Error fetching total points:', error.message);
+    return res.status(500).json({
+      message: '서버 오류가 발생했습니다.',
+      error: error.message,
+    });
+  }
+};
+
+// 포인트 사용내역
+const getPoints = async (req, res) => {
+  try {
+    // req.user에서 userNo 가져오기 (토큰 인증)
+    const userNo = req.user?.userNo;
+
+    // userNo가 없는 경우 처리
+    if (!userNo) {
+      return res
+        .status(400)
+        .json({ message: '유효하지 않은 사용자 요청입니다.' });
+    }
+
+    // SQL 쿼리: 특정 유저의 포인트 내역 조회
+    const query = `
+      SELECT 
+        point_no,
+        user_no,
+        point_status,
+        point_amount,
+        point_total,
+        point_reason,
+        TO_CHAR(created_at, 'YY-MM-DD HH24:MI') AS created_at
+      FROM point
+      WHERE user_no = $1
+      ORDER BY created_at DESC;
+    `;
+    const values = [userNo];
+    const result = await database.query(query, values);
+
+    // 데이터 반환
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: '포인트 내역이 없습니다.' });
+    }
+
+    return res.status(200).json({
+      message: '포인트 내역 조회 성공',
+      points: result.rows,
+    });
+  } catch (error) {
+    console.error('Error fetching points:', error.message);
+    return res.status(500).json({
+      message: '서버 오류가 발생했습니다.',
+      error: error.message,
+    });
+  }
+};
 
 module.exports = {
   emailAuth,
@@ -465,11 +554,13 @@ module.exports = {
   idCheck,
   userLogin,
   findId,
-  passwordEmailAuth,
+  passwordEmail,
   passwordVerifyNumber,
   resetPassword,
   verifyPassword,
   updatePassword,
   createInquiry,
   getInquiries,
+  getTotalPoints,
+  getPoints,
 };
