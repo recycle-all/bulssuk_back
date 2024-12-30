@@ -5,6 +5,8 @@ const {
   addAlarm,
   getAlarms,
   updateAlarm,
+  getAlarmsByDate,
+  deactivateAlarm,
 } = require('../../controllers/user/calendarController');
 
 const router = express.Router();
@@ -14,5 +16,7 @@ router.post('/attendance', updateAttendance);
 router.post('/alarm', addAlarm);
 router.get('/alarm/:user_id', getAlarms);
 router.put('/update_alarm', updateAlarm);
+router.get('/date', getAlarmsByDate);
+router.put('/deactivate_alarm', deactivateAlarm);
 
 module.exports = router;

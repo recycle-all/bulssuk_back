@@ -7,7 +7,6 @@ const getAttendance = async (req, res) => {
   const { user_id } = req.params;
 
   try {
-    // user_id로 user_no 조회
     const userResult = await database.query(
       'SELECT user_no FROM users WHERE user_id = $1',
       [user_id]
@@ -19,7 +18,6 @@ const getAttendance = async (req, res) => {
 
     const user_no = userResult.rows[0].user_no;
 
-    // user_no로 출석 데이터 조회
     const attendanceResult = await database.query(
       'SELECT * FROM attendance WHERE user_no = $1 ORDER BY attendance_date DESC',
       [user_no]
@@ -37,7 +35,6 @@ const updateAttendance = async (req, res) => {
   const { user_id } = req.body;
 
   try {
-    // user_id로 user_no 조회
     const userResult = await database.query(
       'SELECT user_no FROM users WHERE user_id = $1',
       [user_id]
@@ -55,7 +52,6 @@ const updateAttendance = async (req, res) => {
       '0'
     )}-${String(now.getDate()).padStart(2, '0')}`; // YYYY-MM-DD 형식
 
-    // 중복 체크
     const duplicateCheck = await database.query(
       'SELECT * FROM attendance WHERE user_no = $1 AND attendance_date = $2',
       [user_no, today]
@@ -67,7 +63,6 @@ const updateAttendance = async (req, res) => {
         .json({ message: '이미 오늘 출석 체크가 완료되었습니다.' });
     }
 
-    // 출석 체크 저장
     const result = await database.query(
       'INSERT INTO attendance (user_no, attendance_date, status) VALUES ($1, $2, $3) RETURNING *',
       [user_no, today, true]
@@ -80,18 +75,20 @@ const updateAttendance = async (req, res) => {
   }
 };
 
-// 알람 설정 추가
+// 알람 추가
 const addAlarm = async (req, res) => {
   const {
-    user_id, // user_id로 받기
+    user_id,
     user_calendar_name,
     user_calendar_every,
     user_calendar_memo,
-    selected_date,
+    user_calendar_date,
+    user_calendar_list,
   } = req.body;
 
+  console.log('Received user_calendar_date:', user_calendar_date); // 디버깅용 출력
+
   try {
-    // user_id로 user_no 조회
     const userResult = await database.query(
       'SELECT user_no FROM users WHERE user_id = $1',
       [user_id]
@@ -103,17 +100,29 @@ const addAlarm = async (req, res) => {
 
     const user_no = userResult.rows[0].user_no;
 
-    const dateToInsert = selected_date ? new Date(selected_date) : new Date();
+    // 날짜 유효성 검사
+    if (!user_calendar_date) {
+      return res
+        .status(400)
+        .json({ message: 'user_calendar_date is required.' });
+    }
 
+    const parsedDate = new Date(user_calendar_date);
+    if (isNaN(parsedDate.getTime())) {
+      return res.status(400).json({ message: 'Invalid date format.' });
+    }
+
+    // 데이터베이스에 삽입
     const result = await database.query(
-      'INSERT INTO user_calendar (user_no, user_calendar_name, user_calendar_every, user_calendar_memo, created_at, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      `INSERT INTO user_calendar (user_no, user_calendar_name, user_calendar_every, user_calendar_memo, user_calendar_date, created_at, status, user_calendar_list) 
+       VALUES ($1, $2, $3, $4, $5, NOW(), TRUE, $6) RETURNING *`,
       [
         user_no,
         user_calendar_name,
         user_calendar_every,
         user_calendar_memo,
-        dateToInsert,
-        true,
+        parsedDate.toISOString().split('T')[0], // YYYY-MM-DD 형식
+        user_calendar_list,
       ]
     );
 
@@ -127,11 +136,12 @@ const addAlarm = async (req, res) => {
 // 알람 수정
 const updateAlarm = async (req, res) => {
   const {
-    user_id, // user_id로 받기
+    user_id,
     user_calendar_name,
     user_calendar_every,
     user_calendar_memo,
-    created_at, // YYYY-MM-DD 형식으로 전달
+    user_calendar_date,
+    user_calendar_list, // 활성화/비활성화 여부 필드
   } = req.body;
 
   try {
@@ -147,20 +157,22 @@ const updateAlarm = async (req, res) => {
 
     const user_no = userResult.rows[0].user_no;
 
-    // created_at을 DATE 형식으로 변환하여 조건 비교 후 업데이트
+    // 업데이트 쿼리
     const result = await database.query(
       `UPDATE user_calendar
        SET user_calendar_name = $1, 
            user_calendar_every = $2, 
-           user_calendar_memo = $3
-       WHERE user_no = $4 AND created_at::DATE = $5
+           user_calendar_memo = $3,
+           user_calendar_list = $4
+       WHERE user_no = $5 AND user_calendar_date = $6
        RETURNING *`,
       [
         user_calendar_name,
         user_calendar_every,
         user_calendar_memo,
+        user_calendar_list, // 활성화/비활성화 여부
         user_no,
-        created_at, // YYYY-MM-DD 형식
+        user_calendar_date,
       ]
     );
 
@@ -198,7 +210,8 @@ const getAlarms = async (req, res) => {
     const user_no = userResult.rows[0].user_no;
 
     const result = await database.query(
-      'SELECT user_calendar_name, user_calendar_memo, user_calendar_every, created_at FROM user_calendar WHERE user_no = $1',
+      `SELECT user_calendar_name, user_calendar_memo, user_calendar_every, user_calendar_date, user_calendar_list, created_at
+       FROM user_calendar WHERE user_no = $1 AND status = true ORDER BY user_calendar_date DESC`,
       [user_no]
     );
 
@@ -209,10 +222,91 @@ const getAlarms = async (req, res) => {
   }
 };
 
+// 특정 날짜의 알람 리스트 가져오기
+const getAlarmsByDate = async (req, res) => {
+  const { user_id, user_calendar_date } = req.query;
+
+  if (!user_id || !user_calendar_date) {
+    return res
+      .status(400)
+      .json({ message: 'user_id and user_calendar_date are required.' });
+  }
+
+  try {
+    const userResult = await database.query(
+      'SELECT user_no FROM users WHERE user_id = $1',
+      [user_id]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    const user_no = userResult.rows[0].user_no;
+
+    const result = await database.query(
+      `SELECT user_calendar_name, user_calendar_memo, user_calendar_every, user_calendar_date, user_calendar_list
+       FROM user_calendar 
+       WHERE user_no = $1 AND user_calendar_date = $2 AND status = true
+       ORDER BY created_at DESC`,
+      [user_no, user_calendar_date]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching alarms by date:', err);
+    res.status(500).send('Server error');
+  }
+};
+
+// 알람 삭제 (status = false)
+const deactivateAlarm = async (req, res) => {
+  const { user_id, user_calendar_date } = req.body;
+
+  try {
+    // user_id로 user_no 조회
+    const userResult = await database.query(
+      'SELECT user_no FROM users WHERE user_id = $1',
+      [user_id]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    const user_no = userResult.rows[0].user_no;
+
+    // user_calendar_date 조건으로 알람의 status를 false로 변경
+    const result = await database.query(
+      `UPDATE user_calendar
+       SET status = false
+       WHERE user_no = $1 AND user_calendar_date = $2
+       RETURNING *`,
+      [user_no, user_calendar_date]
+    );
+
+    if (result.rowCount === 0) {
+      return res
+        .status(404)
+        .json({ message: '해당 날짜의 알람을 찾을 수 없습니다.' });
+    }
+
+    res.json({
+      message: '알람이 성공적으로 삭제되었습니다.',
+      alarm: result.rows,
+    });
+  } catch (err) {
+    console.error('Error deleting alarm:', err);
+    res.status(500).send('Server error');
+  }
+};
+
 module.exports = {
   getAttendance,
   updateAttendance,
   addAlarm,
   getAlarms,
   updateAlarm,
+  getAlarmsByDate,
+  deactivateAlarm,
 };
