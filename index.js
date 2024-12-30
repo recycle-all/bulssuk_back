@@ -9,7 +9,7 @@ const authenticateTokens = require('./middleware/middleware');
 require('./scheduler'); // 스케쥴러 실행
 
 const app = express();
-const port = 8080;
+const port = 8001;
 
 app.use(express.json()); // JSON 요청 파싱
 app.use(express.urlencoded({ extended: true })); // URL-encoded 요청 처리
