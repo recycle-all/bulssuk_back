@@ -49,8 +49,23 @@ const signUp = async (req, res) => {
 
     const user_no = userResult.rows[0].user_no;
 
+    // 가입 축하 포인트 지급
+    await database.query(
+      `INSERT INTO point 
+        (user_no, point_status, point_amount, point_total, point_reason) 
+        VALUES ($1, $2, $3, $4, $5);`,
+      [
+        user_no,
+        'ADD', // 포인트 추가
+        50, // 지급 포인트
+        50, // 총 포인트
+        '가입 축하 포인트 지급', // 지급 사유
+      ]
+    );
+
     res.status(201).json({
-      message: '회원 가입을 완료하였습니다.',
+      message:
+        '회원 가입을 완료하였습니다. 가입 축하 포인트 100p가 지급되었습니다.',
       user_no,
     });
   } catch (error) {
@@ -499,7 +514,7 @@ const getTotalPoints = async (req, res) => {
   }
 };
 
-// 포인트 사용내역
+// 포인트 상세내역
 const getPoints = async (req, res) => {
   try {
     // req.user에서 userNo 가져오기 (토큰 인증)
