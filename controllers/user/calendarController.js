@@ -141,7 +141,7 @@ const updateAlarm = async (req, res) => {
     user_calendar_name,
     user_calendar_every,
     user_calendar_memo,
-    user_calendar_list, // 활성화/비활성화 여부 필드
+    user_calendar_list,
   } = req.body;
 
   try {
@@ -155,7 +155,13 @@ const updateAlarm = async (req, res) => {
       return res.status(404).json({ message: 'User not found.' });
     }
 
+    // 조회 결과에서 user_no를 가져옴
     const user_no = userResult.rows[0].user_no;
+
+    // user_calendar_no가 null인지 확인
+    if (!user_calendar_no) {
+      return res.status(400).json({ message: 'user_calendar_no is required.' });
+    }
 
     // 업데이트 쿼리
     const result = await database.query(
@@ -244,11 +250,15 @@ const getAlarmsByDate = async (req, res) => {
 
     const user_no = userResult.rows[0].user_no;
 
+    console.log('Request user_id:', user_id);
+    console.log('Request user_calendar_date:', user_calendar_date);
+
     const result = await database.query(
-      `SELECT user_calendar_name, user_calendar_memo, user_calendar_every, user_calendar_date, user_calendar_list
+      `SELECT user_calendar_no, user_calendar_name, user_calendar_memo, 
+              user_calendar_every, user_calendar_date, user_calendar_list
        FROM user_calendar 
-       WHERE user_no = $1 AND user_calendar_date = $2 AND status = true
-       ORDER BY user_calendar_date DESC, created_at DESC`,
+       WHERE user_no = $1 AND user_calendar_date = $2
+       ORDER BY created_at DESC`,
       [user_no, user_calendar_date]
     );
 
@@ -263,8 +273,11 @@ const getAlarmsByDate = async (req, res) => {
 const deactivateAlarm = async (req, res) => {
   const { user_id, user_calendar_no } = req.body;
 
+  if (!user_calendar_no) {
+    return res.status(400).json({ message: 'user_calendar_no is required.' });
+  }
+
   try {
-    // user_id로 user_no 조회
     const userResult = await database.query(
       'SELECT user_no FROM users WHERE user_id = $1',
       [user_id]
@@ -276,7 +289,6 @@ const deactivateAlarm = async (req, res) => {
 
     const user_no = userResult.rows[0].user_no;
 
-    // user_calendar_date 조건으로 알람의 status를 false로 변경
     const result = await database.query(
       `UPDATE user_calendar
        SET status = false
@@ -284,6 +296,7 @@ const deactivateAlarm = async (req, res) => {
        RETURNING *`,
       [user_no, user_calendar_no]
     );
+    console.log('Request body:', req.body);
 
     if (result.rowCount === 0) {
       return res
