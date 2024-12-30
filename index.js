@@ -6,6 +6,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser'); // cookie-parser 추가
 const authenticateToken = require('./middleware/authenticateToken'); // 인증 미들웨어 불러오기
 const authenticateTokens = require('./middleware/middleware');
+require('./scheduler'); // 스케쥴러 실행
 
 const app = express();
 const port = 8080;
