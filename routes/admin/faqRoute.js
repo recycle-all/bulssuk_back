@@ -9,6 +9,7 @@ const {
   uploadAnswer,
   deactivateInquiry,
   deactivateAnswer,
+  generateFAQ,
 } = require('../../controllers/admin/faqController');
 
 // 문의내역 관련 API
