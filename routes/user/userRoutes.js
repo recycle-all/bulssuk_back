@@ -40,6 +40,6 @@ router.get('/get-inquiries', authenticateToken, getInquiries); // 사용자 문�
 
 // 포인트 관련 라우트
 router.get('/total_point', authenticateToken, getTotalPoints); // 총 포인트 조회
-router.get('/history_point', getPoints); // 포인트 사용내역
+router.get('/history_point', authenticateToken, getPoints); // 포인트 사용내역
 
 module.exports = router;

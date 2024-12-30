@@ -22,6 +22,7 @@ const authenticateTokens = (req, res, next) => {
       return res.status(403).json({ message: '유효하지 않은 토큰입니다.' });
     }
 
+    console.log('JWT 디코딩 결과:', user);
     req.user = user; // 검증된 사용자 정보를 요청에 추가
     next(); // 다음 미들웨어 또는 컨트롤러로 이동
   });
