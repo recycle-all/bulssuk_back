@@ -423,19 +423,22 @@ const getInquiries = async (req, res) => {
 
     // 문의 내역과 답변 조회
     const query = `
-    SELECT 
-      i.question_no,
-      i.question_title,
-      i.question_content,
-      TO_CHAR(i.created_at, 'YY-MM-DD HH24:MI') AS created_at,
-      i.is_answered,
-      a.answer_content,
-      TO_CHAR(a.created_at, 'YY-MM-DD HH24:MI') AS answer_created_at
-    FROM inquiry i
-    LEFT JOIN answer a ON i.question_no = a.question_no
-    WHERE i.user_no = $1
-    ORDER BY i.created_at DESC
-  `;
+      SELECT 
+        i.question_no,
+        i.question_title,
+        i.question_content,
+        TO_CHAR(i.created_at, 'YY-MM-DD HH24:MI') AS created_at,
+        CASE 
+          WHEN i.is_answered = '답변 완료' THEN true
+          ELSE false
+        END AS is_answered, -- 상태를 boolean으로 변환
+        a.answer_content,
+        TO_CHAR(a.created_at, 'YY-MM-DD HH24:MI') AS answer_created_at
+      FROM inquiry i
+      LEFT JOIN answer a ON i.question_no = a.question_no
+      WHERE i.user_no = $1
+      ORDER BY i.created_at DESC
+    `;
     const values = [userNo];
     const result = await database.query(query, values);
 
