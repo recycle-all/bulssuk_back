@@ -211,7 +211,7 @@ const getAlarms = async (req, res) => {
 
     const result = await database.query(
       `SELECT user_calendar_name, user_calendar_memo, user_calendar_every, user_calendar_date, user_calendar_list, created_at
-       FROM user_calendar WHERE user_no = $1 AND status = true ORDER BY user_calendar_date DESC`,
+       FROM user_calendar WHERE user_no = $1 AND status = true ORDER BY user_calendar_date DESC, created_at DESC`,
       [user_no]
     );
 
@@ -248,7 +248,7 @@ const getAlarmsByDate = async (req, res) => {
       `SELECT user_calendar_name, user_calendar_memo, user_calendar_every, user_calendar_date, user_calendar_list
        FROM user_calendar 
        WHERE user_no = $1 AND user_calendar_date = $2 AND status = true
-       ORDER BY created_at DESC`,
+       ORDER BY user_calendar_date DESC, created_at DESC`,
       [user_no, user_calendar_date]
     );
 
