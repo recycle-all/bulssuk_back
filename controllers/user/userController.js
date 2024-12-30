@@ -49,8 +49,23 @@ const signUp = async (req, res) => {
 
     const user_no = userResult.rows[0].user_no;
 
+    // 가입 축하 포인트 지급
+    await database.query(
+      `INSERT INTO point 
+        (user_no, point_status, point_amount, point_total, point_reason) 
+        VALUES ($1, $2, $3, $4, $5);`,
+      [
+        user_no,
+        'ADD', // 포인트 추가
+        50, // 지급 포인트
+        50, // 총 포인트
+        '가입 축하 포인트 지급', // 지급 사유
+      ]
+    );
+
     res.status(201).json({
-      message: '회원 가입을 완료하였습니다.',
+      message:
+        '회원 가입을 완료하였습니다. 가입 축하 포인트 100p가 지급되었습니다.',
       user_no,
     });
   } catch (error) {
@@ -499,43 +514,36 @@ const getTotalPoints = async (req, res) => {
   }
 };
 
-// 포인트 사용내역
+// 포인트 상세내역
 const getPoints = async (req, res) => {
   try {
-    // req.user에서 userNo 가져오기 (토큰 인증)
-    const userNo = req.user?.userNo;
+    const userNo = req.user?.userNo; // JWT에서 가져온 사용자 고유 번호
+    console.log('userNo:', userNo);
 
-    // userNo가 없는 경우 처리
     if (!userNo) {
-      return res
-        .status(400)
-        .json({ message: '유효하지 않은 사용자 요청입니다.' });
+      return res.status(401).json({ message: '로그인이 필요합니다.' });
     }
 
-    // SQL 쿼리: 특정 유저의 포인트 내역 조회
+    // 포인트 내역 조회
     const query = `
       SELECT 
-        point_no,
-        user_no,
-        point_status,
+        point_status, 
         point_amount,
-        point_total,
         point_reason,
         TO_CHAR(created_at, 'YY-MM-DD HH24:MI') AS created_at
       FROM point
       WHERE user_no = $1
-      ORDER BY created_at DESC;
+      ORDER BY created_at DESC
     `;
     const values = [userNo];
+    console.log('Query Values:', values);
+
     const result = await database.query(query, values);
+    console.log('Query Result:', result.rows);
 
-    // 데이터 반환
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: '포인트 내역이 없습니다.' });
-    }
-
+    // 응답 데이터 반환
     return res.status(200).json({
-      message: '포인트 내역 조회 성공',
+      message: '포인트 내역이 성공적으로 조회되었습니다.',
       points: result.rows,
     });
   } catch (error) {
