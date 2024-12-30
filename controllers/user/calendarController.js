@@ -137,10 +137,10 @@ const addAlarm = async (req, res) => {
 const updateAlarm = async (req, res) => {
   const {
     user_id,
+    user_calendar_no,
     user_calendar_name,
     user_calendar_every,
     user_calendar_memo,
-    user_calendar_date,
     user_calendar_list, // 활성화/비활성화 여부 필드
   } = req.body;
 
@@ -164,7 +164,7 @@ const updateAlarm = async (req, res) => {
            user_calendar_every = $2, 
            user_calendar_memo = $3,
            user_calendar_list = $4
-       WHERE user_no = $5 AND user_calendar_date = $6
+       WHERE user_no = $5 AND user_calendar_no = $6
        RETURNING *`,
       [
         user_calendar_name,
@@ -172,7 +172,7 @@ const updateAlarm = async (req, res) => {
         user_calendar_memo,
         user_calendar_list, // 활성화/비활성화 여부
         user_no,
-        user_calendar_date,
+        user_calendar_no, // 메모를 식별
       ]
     );
 
@@ -211,7 +211,7 @@ const getAlarms = async (req, res) => {
 
     const result = await database.query(
       `SELECT user_calendar_name, user_calendar_memo, user_calendar_every, user_calendar_date, user_calendar_list, created_at
-       FROM user_calendar WHERE user_no = $1 AND status = true ORDER BY user_calendar_date DESC`,
+       FROM user_calendar WHERE user_no = $1 AND status = true ORDER BY user_calendar_date DESC, created_at DESC`,
       [user_no]
     );
 
@@ -248,7 +248,7 @@ const getAlarmsByDate = async (req, res) => {
       `SELECT user_calendar_name, user_calendar_memo, user_calendar_every, user_calendar_date, user_calendar_list
        FROM user_calendar 
        WHERE user_no = $1 AND user_calendar_date = $2 AND status = true
-       ORDER BY created_at DESC`,
+       ORDER BY user_calendar_date DESC, created_at DESC`,
       [user_no, user_calendar_date]
     );
 
@@ -261,7 +261,7 @@ const getAlarmsByDate = async (req, res) => {
 
 // 알람 삭제 (status = false)
 const deactivateAlarm = async (req, res) => {
-  const { user_id, user_calendar_date } = req.body;
+  const { user_id, user_calendar_no } = req.body;
 
   try {
     // user_id로 user_no 조회
@@ -280,9 +280,9 @@ const deactivateAlarm = async (req, res) => {
     const result = await database.query(
       `UPDATE user_calendar
        SET status = false
-       WHERE user_no = $1 AND user_calendar_date = $2
+       WHERE user_no = $1 AND user_calendar_no = $2
        RETURNING *`,
-      [user_no, user_calendar_date]
+      [user_no, user_calendar_no]
     );
 
     if (result.rowCount === 0) {
