@@ -1,5 +1,7 @@
 const database = require('../../database/database');
 const dotenv = require('dotenv');
+const path = require('path');
+const moment = require('moment-timezone'); // KST 변환을 위해 import
 dotenv.config();
 
 // 출석 체크 가져오기
@@ -314,6 +316,154 @@ const deactivateAlarm = async (req, res) => {
   }
 };
 
+// 출석체크와 포인트 지급 동시
+const updateAttendanceAndPoints = async (req, res) => {
+  const { user_no } = req.body;
+  console.log("Request Body:", req.body);
+
+  try {
+    const now = new Date();
+    const today = now.toISOString().split("T")[0]; // 오늘 날짜 (YYYY-MM-DD 형식)
+    console.log("Today:", today);
+
+    // 중복 체크: 동일 날짜에 이미 출석 체크된 경우 처리
+    const duplicateCheck = await database.query(
+      "SELECT * FROM attendance WHERE user_no = $1 AND attendance_date = $2",
+      [user_no, today]
+    );
+    console.log("Duplicate Check Result:", duplicateCheck.rows);
+
+    if (duplicateCheck.rows.length > 0) {
+      return res
+        .status(400)
+        .json({ message: "이미 오늘 출석 체크가 완료되었습니다." });
+    }
+
+    // 출석 체크 기록 추가
+    const attendanceResult = await database.query(
+      "INSERT INTO attendance (user_no, attendance_date, status) VALUES ($1, $2, $3) RETURNING *",
+      [user_no, today, true]
+    );
+    console.log("Attendance Insert Result:", attendanceResult.rows[0]);
+
+    // 포인트 추가 로직
+    const previousPoint = await database.query(
+      "SELECT point_total FROM point WHERE user_no = $1 ORDER BY created_at DESC LIMIT 1",
+      [user_no]
+    );
+    const lastPointTotal =
+      previousPoint.rows.length > 0 ? previousPoint.rows[0].point_total : 0;
+    const pointAmount = 10; // 절대값으로 포인트 추가 (10)
+
+    const pointResult = await database.query(
+      "INSERT INTO point (user_no, point_status, point_amount, point_total, point_reason, created_at, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
+      [
+        user_no,
+        "ADD", // 포인트 상태
+        pointAmount,
+        lastPointTotal + pointAmount, // 이전 값에 포인트 추가
+        "출석체크", // 포인트 사유
+        now, // 생성된 날짜
+        true, // 기본값 true
+      ]
+    );
+    console.log("Point Insert Result:", pointResult.rows[0]);
+
+    res.json({
+      attendance: attendanceResult.rows[0],
+      point: pointResult.rows[0],
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error");
+  }
+};
+
+// 해당하는 달의 출석체크 모두 가져오기 
+const getAttendances = async (req, res) => {
+  const { user_no, year, month } = req.params; // URL에서 user_no, year, month 추출
+
+  try {
+    // 데이터베이스 쿼리 실행
+    const result = await database.query(
+      `SELECT * 
+       FROM attendance 
+       WHERE user_no = $1 
+       AND EXTRACT(YEAR FROM attendance_date) = $2 
+       AND EXTRACT(MONTH FROM attendance_date) = $3`,
+      [user_no, year, month] // 쿼리 파라미터에 값 전달
+    );
+
+    // 결과 반환
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Error fetching attendance data:', error);
+    res.status(500).json({ message: '서버 오류로 데이터를 가져오지 못했습니다.' });
+  }
+};
+
+// 달(month) 이미지 가져오기
+const getMonthImage = async (req, res) => {
+  const { month } = req.params;
+
+  try {
+    const query = `
+      SELECT custom_month, custom_img
+      FROM custom_img 
+      WHERE custom_month = $1
+    `;
+    const result = await database.query(query, [month]);
+
+    if (result.rows.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    // 파일 이름만 추출
+    const rowsWithFileNameOnly = result.rows.map((row) => ({
+      ...row,
+      custom_img: path.basename(row.custom_img), // 파일 이름만 추출
+    }));
+
+    res.status(200).json(rowsWithFileNameOnly);
+  } catch (error) {
+    console.error('Error fetching custom data:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다.' });
+  }
+};
+
+// 일(day) 이벤트 가져오기
+const getEvent = async (req, res) => {
+  const { year, month } = req.params;
+
+  // 월 형식 맞추기 (예: 2024-12)
+  const formattedMonth = `${year}-${month.padStart(2, '0')}`;
+
+  try {
+    const query = `
+      SELECT manage_calendar_no, calendar_name, calendar_date, calendar_content, calendar_img
+      FROM manage_calendar
+      WHERE calendar_date::text LIKE $1 AND status = true 
+      ORDER BY calendar_date ASC
+    `;
+    const result = await database.query(query, [`${formattedMonth}-%`]);
+    if (result.rows.length === 0) {
+      return res.status(200).json([]); // 빈 배열 반환
+    }
+
+    // UTC -> KST 변환 및 calendar_img 파일 이름만 추출
+    const adjustedRows = result.rows.map(row => ({
+      ...row,
+      calendar_date: moment(row.calendar_date).tz('Asia/Seoul').format('YYYY-MM-DD'), // KST 변환
+      calendar_img: row.calendar_img ? row.calendar_img.split('/').pop() : null, // 파일 이름만 추출
+    }));
+    console.log(adjustedRows)
+    res.status(200).json(adjustedRows);
+  } catch (error) {
+    console.error('Error fetching custom day data:', error.message);
+    res.status(500).json({ error: '서버 오류가 발생했습니다.' });
+  }
+};
+
 module.exports = {
   getAttendance,
   updateAttendance,
@@ -322,4 +472,8 @@ module.exports = {
   updateAlarm,
   getAlarmsByDate,
   deactivateAlarm,
+  updateAttendanceAndPoints,
+  getAttendances,
+  getMonthImage,
+  getEvent
 };
