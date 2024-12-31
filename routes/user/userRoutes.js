@@ -16,6 +16,7 @@ const {
   getInquiries,
   getTotalPoints,
   getPoints,
+  userCoupon,
 } = require('../../controllers/user/userController');
 const authenticateToken = require('../../middleware/authenticateToken');
 
@@ -41,5 +42,8 @@ router.get('/get-inquiries', authenticateToken, getInquiries); // 사용자 문�
 // 포인트 관련 라우트
 router.get('/total_point', authenticateToken, getTotalPoints); // 총 포인트 조회
 router.get('/history_point', authenticateToken, getPoints); // 포인트 사용내역
+
+// 쿠폰 관련 라우트
+router.get('/user_coupon', authenticateToken, userCoupon); // 쿠폰 조회
 
 module.exports = router;

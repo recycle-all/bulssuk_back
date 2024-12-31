@@ -518,7 +518,7 @@ const getTotalPoints = async (req, res) => {
 const getPoints = async (req, res) => {
   try {
     const userNo = req.user?.userNo; // JWT에서 가져온 사용자 고유 번호
-    console.log('userNo:', userNo);
+    // console.log('userNo:', userNo);
 
     if (!userNo) {
       return res.status(401).json({ message: '로그인이 필요합니다.' });
@@ -536,10 +536,10 @@ const getPoints = async (req, res) => {
       ORDER BY created_at DESC
     `;
     const values = [userNo];
-    console.log('Query Values:', values);
+    // console.log('Query Values:', values);
 
     const result = await database.query(query, values);
-    console.log('Query Result:', result.rows);
+    // console.log('Query Result:', result.rows);
 
     // 응답 데이터 반환
     return res.status(200).json({
@@ -550,6 +550,69 @@ const getPoints = async (req, res) => {
     console.error('Error fetching points:', error.message);
     return res.status(500).json({
       message: '서버 오류가 발생했습니다.',
+      error: error.message,
+    });
+  }
+};
+
+// 쿠폰 데이터 가져오기
+const userCoupon = async (req, res) => {
+  try {
+    // JWT 또는 세션에서 로그인한 유저의 고유 번호 가져오기
+    const userNo = req.user?.userNo;
+
+    if (!userNo) {
+      console.log('Unauthorized access: User No is missing');
+      return res.status(401).json({ message: '로그인이 필요합니다.' });
+    }
+
+    // SQL 쿼리 작성
+    const query = `
+      SELECT 
+        cm.coupon_name AS name, 
+        TO_CHAR(cm.expiration_date, 'YYYY-MM-DD') AS expirationDate
+      FROM 
+        user_coupon uc
+      INNER JOIN 
+        coupon_management cm
+      ON 
+        uc.coupon_no = cm.coupon_no
+      WHERE 
+        uc.user_no = $1
+      ORDER BY 
+        cm.expiration_date ASC;
+    `;
+
+    const values = [userNo];
+
+    // 쿼리 실행
+    const result = await database.query(query, values);
+
+    // 쿼리 결과 확인
+    // console.log('Query Result:', result.rows);
+
+    if (result.rows.length === 0) {
+      console.log('No coupons found for User No:', userNo);
+      return res.status(404).json({
+        success: false,
+        message: '쿠폰 데이터가 없습니다.',
+      });
+    }
+
+    // 성공 응답
+    res.status(200).json({
+      success: true,
+      message: '쿠폰 데이터를 성공적으로 가져왔습니다.',
+      data: result.rows,
+    });
+  } catch (error) {
+    // 오류 발생 시 콘솔 로그로 상세 정보 출력
+    console.error('Error fetching user coupons:', error.stack);
+
+    // 에러 응답
+    res.status(500).json({
+      success: false,
+      message: '쿠폰 데이터를 가져오는 중 문제가 발생했습니다.',
       error: error.message,
     });
   }
@@ -571,4 +634,5 @@ module.exports = {
   getInquiries,
   getTotalPoints,
   getPoints,
+  userCoupon,
 };
