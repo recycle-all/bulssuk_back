@@ -85,7 +85,7 @@ exports.updateCompany = async (req, res) => {
 exports.createCompany = async (req, res) =>{
     const {company_name, company_content} = req.body
     const admin_no = req.body.admin_no // 클라이언트로부터 admin_no 받기
-    const company_img = req.file ? req.file.path.replace(/\\/g, '/').replace('public/', '') : null;
+    const company_img = req.file ? req.file.path.replace(/\\/g, '/').replace('public', '') : null;
     const created_at = new Date(); // 현재 시간 추가
     try {
         const query = `
