@@ -53,7 +53,7 @@ app.use(require('./routes/admin/faqRoute'));
 app.use(require('./routes/admin/productRoute'));
 app.use(require('./routes/admin/recycleRoute'));
 app.use(require('./routes/admin/userRoute'));
-
+app.use(require('./routes/admin/couponRoute'))
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
