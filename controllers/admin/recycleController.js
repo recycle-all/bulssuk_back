@@ -113,31 +113,86 @@ exports.getMidCategory = async (req, res) => {
 
 // 중분류, 세부사항 수정
 exports.updateMidCategory = async (req, res) => {
-  try {
-      const { subcategory_no, subcategory_name } = req.body;
+    try {
+      const { subcategory_no, subcategory_name, guide_content } = req.body;
       const updated_at = new Date();
-
-      const subcategoryQuery = `
-          UPDATE subcategories
-          SET subcategory_name = $1, updated_at = $2
-          WHERE subcategory_no = $3
-          RETURNING *`;
-      const subcategoryValues = [subcategory_name, updated_at, subcategory_no];
-      const subcategoryResult = await database.query(subcategoryQuery, subcategoryValues);
-
-      if (subcategoryResult.rowCount === 0) {
-          return res.status(404).json({ error: 'Subcategory not found' });
+      const client = await database.connect();
+  
+      console.log('Request Body:', req.body); // 요청 본문 출력
+      console.log('Uploaded File:', req.file); // 파일 업로드 정보 출력
+  
+      try {
+        await client.query('BEGIN');
+        console.log('Transaction Started');
+  
+        // Subcategory 업데이트 쿼리 생성
+        let subcategoryQuery = `UPDATE subcategories SET `;
+        const subcategoryUpdates = [];
+        const subcategoryValues = [];
+  
+        if (subcategory_name) {
+          subcategoryUpdates.push(`subcategory_name = $${subcategoryValues.length + 1}`);
+          subcategoryValues.push(subcategory_name);
+          console.log('Subcategory Name to Update:', subcategory_name);
+        }
+        if (subcategoryUpdates.length > 0) {
+          subcategoryUpdates.push(`updated_at = $${subcategoryValues.length + 1}`);
+          subcategoryValues.push(updated_at);
+          subcategoryValues.push(subcategory_no); // WHERE 절 값
+          subcategoryQuery += subcategoryUpdates.join(', ');
+          subcategoryQuery += ` WHERE subcategory_no = $${subcategoryValues.length}`;
+          console.log('Subcategory Query:', subcategoryQuery);
+          console.log('Subcategory Values:', subcategoryValues);
+          await client.query(subcategoryQuery, subcategoryValues);
+        }
+  
+        // Recycling Guide 업데이트 쿼리 생성
+        let guideQuery = `UPDATE recycling_guide SET `;
+        const guideUpdates = [];
+        const guideValues = [];
+  
+        if (guide_content) {
+          guideUpdates.push(`guide_content = $${guideValues.length + 1}`);
+          guideValues.push(guide_content);
+          console.log('Guide Content to Update:', guide_content);
+        }
+        if (req.file) {
+          const guide_img = req.file.path.replace(/\\/g, '/').replace('public', '');
+          guideUpdates.push(`guide_img = $${guideValues.length + 1}`);
+          guideValues.push(guide_img);
+          console.log('Guide Image to Update:', guide_img);
+        }
+        if (guideUpdates.length > 0) {
+          guideUpdates.push(`updated_at = $${guideValues.length + 1}`);
+          guideValues.push(updated_at);
+          guideValues.push(subcategory_no); // WHERE 절 값
+          guideQuery += guideUpdates.join(', ');
+          guideQuery += ` WHERE subcategory_no = $${guideValues.length}`;
+          console.log('Guide Query:', guideQuery);
+          console.log('Guide Values:', guideValues);
+          await client.query(guideQuery, guideValues);
+        } else {
+          console.log('No updates made to recycling_guide');
+        }
+  
+        await client.query('COMMIT');
+        console.log('Transaction Committed');
+        return res.status(200).json({
+          message: 'Updates applied successfully',
+        });
+      } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('Transaction Rolled Back:', err.message);
+        throw err;
+      } finally {
+        client.release();
       }
-
-      return res.status(200).json({
-          message: 'Subcategory updated successfully',
-          subcategory: subcategoryResult.rows[0],
-      });
-  } catch (error) {
-      console.error('Error updating subcategory:', error);
+    } catch (error) {
+      console.error('Error updating subcategory and guide:', error);
       return res.status(500).json({ error: error.message });
-  }
-};
+    }
+  };
+  
 
 
 // 중분류 (세부사항) 등록
