@@ -99,7 +99,7 @@ exports.getMidCategory = async (req, res) => {
           LEFT JOIN 
               subcategories s
           ON 
-              c.category_no = s.category_no
+             c.category_no = s.category_no AND s.status = true
           ORDER BY 
               c.category_no, s.subcategory_no;
       `;
@@ -197,30 +197,53 @@ exports.updateMidCategory = async (req, res) => {
 
 // 중분류 (세부사항) 등록
 exports.createMidCategory = async (req, res) => {
-  try {
-      const { category_no, subcategory_name } = req.body;
+    try {
+      const { category_no, subcategory_name, guide_content } = req.body;
+      const admin_no = req.body.admin_no; // admin_no 가져오기
       const created_at = new Date();
       const updated_at = created_at;
-
+  
+      // Step 1: subcategories 테이블에 데이터 삽입
       const subcategoryQuery = `
-          INSERT INTO subcategories (category_no, subcategory_name, created_at, updated_at, status)
-          VALUES ($1, $2, $3, $4, true)
-          RETURNING subcategory_no`;
+        INSERT INTO subcategories (category_no, subcategory_name, created_at, updated_at, status)
+        VALUES ($1, $2, $3, $4, true)
+        RETURNING subcategory_no
+      `;
       const subcategoryValues = [category_no, subcategory_name, created_at, updated_at];
-      console.log(subcategoryValues);
       const subcategoryResult = await database.query(subcategoryQuery, subcategoryValues);
-
+  
+      const subcategory_no = subcategoryResult.rows[0].subcategory_no;
+  
+      // Step 2: recycling_guide 테이블에 데이터 삽입
+      console.log(guide_content);
+      const guideImgPath = req.file ? `/uploads/images/${req.file.filename}` : null; // 업로드된 파일 경로
+      const guideQuery = `
+        INSERT INTO recycling_guide (subcategory_no, admin_no, guide_img, guide_content, created_at, updated_at, status)
+        VALUES ($1, $2, $3, $4, $5, $6, true)
+      `;
+      const guideValues = [subcategory_no, admin_no, guideImgPath, guide_content, created_at, updated_at];
+      await database.query(guideQuery, guideValues);
+  
       return res.status(201).json({
-          message: 'Subcategory created successfully',
-          subcategory: subcategoryResult.rows[0],
+        message: 'Subcategory and guide created successfully',
+        subcategory: {
+          subcategory_no,
+          category_no,
+          subcategory_name,
+        },
+        guide: {
+          subcategory_no,
+          admin_no,
+          guide_img: guideImgPath,
+          guide_content,
+        },
       });
-  } catch (error) {
-      console.error('Error creating subcategory:', error);
+    } catch (error) {
+      console.error('Error creating subcategory and guide:', error);
       res.status(500).json({ error: error.message });
-  }
-};
-
-
+    }
+  };
+  
 // 세부사항 가져오기 
 // controllers/guide.js
 exports.getGuideContent = async (req, res) => {
