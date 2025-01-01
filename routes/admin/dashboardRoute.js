@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { countUsers } = require('../../controllers/admin/dashboardController');
+const { countUsers, inquiries, events } = require('../../controllers/admin/dashboardController');
 
 const multer = require('multer');
 const path = require('path');
@@ -18,5 +18,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 router.get('/count_users', countUsers)
-
+router.get('/not_answered_inquiries', inquiries)
+router.get('/this_month_events', events)
 module.exports = router;
