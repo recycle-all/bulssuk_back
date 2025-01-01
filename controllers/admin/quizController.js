@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 const MongoClient = require('mongodb').MongoClient;
 const sqlite3 = require('sqlite3').verbose();
 const util = require('util');
-
+const database = require('../../database/database')
 // MongoDB 연결 설정
 const mongoUri = process.env.MONGO_URI;
 
@@ -136,6 +136,47 @@ async function initialize() {
 }
 
 initialize();
+
+// 문제 맞출 때마다 포인트 주기 
+router.post("/addPoint", async (req, res) => {
+  console.log("addPoint API 호출됨:", req.body); // 로그 추가
+  const { user_no } = req.body; // user_no만 요청 데이터에서 받음
+
+  // 고정된 값 설정
+  const point_amount = 5;
+  const point_reason = "퀴즈 맞춤";
+
+  await database.query("BEGIN");
+  try {
+    // 총 포인트 가져오기
+    const result = await database.query(
+      "SELECT point_total FROM point WHERE user_no = $1 ORDER BY created_at DESC LIMIT 1",
+      [user_no]
+    );
+
+    let currentTotal = 0;
+    if (result.rows.length > 0) {
+      currentTotal = result.rows[0].point_total;
+    }
+    console.log("현재 총 포인트:", currentTotal);
+    const newTotal = currentTotal + point_amount;
+    console.log("새로 저장할 포인트 합계:", newTotal);
+
+    // 포인트 삽입
+    await database.query(
+      `INSERT INTO point (user_no, point_status, point_amount, point_total, point_reason, created_at, status)
+       VALUES ($1, $2, $3, $4, $5, timezone('Asia/Seoul', NOW()), true)`,
+      [user_no, "ADD", point_amount, newTotal, point_reason]
+    );
+
+    await database.query("COMMIT");
+    res.status(200).json({ message: "포인트가 성공적으로 추가되었습니다.", newTotal });
+  } catch (error) {
+    await database.query("ROLLBACK");
+    console.error("포인트 추가 중 오류:", error);
+    res.status(500).json({ message: "포인트 추가 실패", error: error.message });
+  }
+});
 
 module.exports = {
   router,
