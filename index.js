@@ -6,6 +6,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser'); // cookie-parser 추가
 const authenticateToken = require('./middleware/authenticateToken'); // 인증 미들웨어 불러오기
 const authenticateTokens = require('./middleware/middleware');
+const quizRoutes = require('./controllers/admin/quizController'); // quiz.js 경로를 알맞게 설정
 require('./scheduler'); // 스케쥴러 실행
 
 const app = express();
@@ -54,6 +55,9 @@ app.use(require('./routes/admin/productRoute'));
 app.use(require('./routes/admin/recycleRoute'));
 app.use(require('./routes/admin/userRoute'));
 app.use(require('./routes/admin/couponRoute'))
+
+// 퀴즈 
+app.use('/quiz', quizRoutes.router);
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
