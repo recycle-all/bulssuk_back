@@ -6,7 +6,7 @@ const axios = require('axios');
 cron.schedule('* * * 1 *', async () => {
   try {
     console.log('Scheduler triggered: Generating FAQ data');
-    const response = await axios.post('http://localhost:8080/generate');
+    const response = await axios.post('http://222.112.27.120:8001/generate');
     console.log('Scheduler response:', response.data);
   } catch (error) {
     console.error('Error in scheduler:', error);
