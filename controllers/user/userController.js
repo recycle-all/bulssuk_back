@@ -588,9 +588,6 @@ const userCoupon = async (req, res) => {
     // 쿼리 실행
     const result = await database.query(query, values);
 
-    // 쿼리 결과 확인
-    // console.log('Query Result:', result.rows);
-
     if (result.rows.length === 0) {
       console.log('No coupons found for User No:', userNo);
       return res.status(404).json({
@@ -599,11 +596,19 @@ const userCoupon = async (req, res) => {
       });
     }
 
+    // 현재 날짜 기준으로 만료되지 않은 쿠폰 필터링
+    const now = new Date();
+    const availableCoupons = result.rows.filter((coupon) => {
+      const expirationDate = new Date(coupon.expirationdate);
+      return expirationDate >= now; // 만료일이 현재 날짜 이후인 쿠폰
+    });
+
     // 성공 응답
     res.status(200).json({
       success: true,
       message: '쿠폰 데이터를 성공적으로 가져왔습니다.',
       data: result.rows,
+      availableCouponCount: availableCoupons.length, // 사용 가능한 쿠폰 수 추가
     });
   } catch (error) {
     // 오류 발생 시 콘솔 로그로 상세 정보 출력
