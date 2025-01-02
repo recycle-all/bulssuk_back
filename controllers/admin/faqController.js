@@ -203,7 +203,7 @@ exports.generateFAQ = async (req = null, res = null) => {
     );
 
     // 3. FastAPI 서버로 클러스터링 요청
-    const response = await axios.post('http://222.112.27.120:5005/similarity', {
+    const response = await axios.post('http://222.112.27.104:5005/similarity', {
       questions: results.rows.map((row) => ({
         question_no: row.question_no,
         text: `${row.question_content}`,
@@ -221,7 +221,7 @@ exports.generateFAQ = async (req = null, res = null) => {
       // 5. 유사도 기반 중복 판별
       for (const item of clusterItems) {
         const similarityResponse = await axios.post(
-          'http://222.112.27.120:5005/check_similarity',
+          'http://222.112.27.104:5005/check_similarity',
           {
             new_question: item.text,
             existing_questions: existingQuestions,
