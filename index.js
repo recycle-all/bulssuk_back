@@ -55,7 +55,7 @@ app.use(require('./routes/admin/productRoute'));
 app.use(require('./routes/admin/recycleRoute'));
 app.use(require('./routes/admin/userRoute'));
 app.use(require('./routes/admin/couponRoute'))
-
+app.use(require('./routes/admin/inquiryRoute'));
 // 퀴즈 
 app.use('/quiz', quizRoutes.router);
 app.listen(port, () => {
