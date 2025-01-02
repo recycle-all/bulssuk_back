@@ -1,5 +1,5 @@
 {
-  "name": "carbot_db",
+  "name": "bulssuk_back",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -24,15 +24,19 @@
     "jsonwebtoken": "^9.0.2",
     "jwt-decode": "^4.0.0",
     "moment-timezone": "^0.5.46",
+    "mongodb": "^6.12.0",
     "multer": "^1.4.5-lts.1",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.15",
     "nodemon": "^3.1.7",
     "pg": "^8.13.0",
     "pool": "^0.4.1",
-    "uuid": "^11.0.1",
-    "uuid4": "^2.0.3",
     "sqlite3": "^5.1.7",
+<<<<<<< HEAD
     "mongodb": "^6.12.0"
+=======
+    "uuid": "^11.0.1",
+    "uuid4": "^2.0.3"
+>>>>>>> 79da16cd9393e43e14e8f42e083486a4a9980c91
   }
 }
