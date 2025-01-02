@@ -464,6 +464,53 @@ const getEvent = async (req, res) => {
   }
 };
 
+// 알람 리스트 가져오기
+const getAlarmsForUser = async (req, res) => {
+  const { user_no } = req.params; // URL의 user_no 파라미터
+  const { user_calendar_date } = req.query; // Query parameter에서 user_calendar_date 받기
+  console.log(user_no);
+  console.log(user_calendar_date);
+
+  if (!user_no || !user_calendar_date) {
+    return res
+      .status(400)
+      .json({ message: 'user_no와 user_calendar_date 필수입니다.' });
+  }
+
+  try {
+    // 선택된 날짜의 시작과 끝을 계산
+    const startDate = `${user_calendar_date} 00:00:00`; // 날짜 시작
+    const endDate = `${user_calendar_date} 23:59:59`; // 날짜 끝
+
+    // 데이터베이스에서 날짜 범위로 필터링
+    const result = await database.query(
+      `
+      SELECT 
+        user_no, 
+        user_calendar_name, 
+        TO_CHAR(user_calendar_date, 'YYYY-MM-DD') AS user_calendar_date, -- 날짜만 반환
+        user_calendar_every, 
+        user_calendar_memo, 
+        user_calendar_list, 
+        status 
+      FROM user_calendar 
+      WHERE user_no = $1 
+      AND created_at BETWEEN $2 AND $3
+      `,
+      [user_no, startDate, endDate]
+    );
+
+    if (result.rows.length > 0) {
+      res.json(result.rows); // 해당 날짜의 메모 반환
+    } else {
+      res.status(404).json({ message: '해당 날짜에 메모가 없습니다.' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+};
+
 module.exports = {
   getAttendance,
   updateAttendance,
@@ -475,5 +522,6 @@ module.exports = {
   updateAttendanceAndPoints,
   getAttendances,
   getMonthImage,
-  getEvent
+  getEvent,
+  getAlarmsForUser
 };
