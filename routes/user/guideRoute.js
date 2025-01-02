@@ -7,7 +7,7 @@ const {
 } = require('../../controllers/user/guideController');
 
 router.get('/categories', getCategories);
-router.get('/categories/:category_id/subcategories', getSubcategories);
-router.get('/subcategories/:subcategory_id/details', getGuideDetails);
+router.get('/subcategories/:category_id', getSubcategories);
+router.get('/detail/:subcategory_id', getGuideDetails);
 
 module.exports = router;

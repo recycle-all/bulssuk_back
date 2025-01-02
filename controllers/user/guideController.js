@@ -5,7 +5,9 @@ dotenv.config();
 // 대분류 데이터
 const getCategories = async (req, res) => {
   try {
-    const categories = await database.query('SELECT * FROM categories');
+    const categories = await database.query(
+      'SELECT category_no, category_name, category_img FROM categories WHERE status = true'
+    );
     res.json(categories.rows);
   } catch (err) {
     console.error(err.message);
@@ -18,7 +20,7 @@ const getSubcategories = async (req, res) => {
   const { category_id } = req.params;
   try {
     const subcategories = await database.query(
-      'SELECT * FROM subcategories WHERE category_no = $1',
+      'SELECT subcategory_no, category_no, subcategory_name FROM subcategories WHERE category_no = $1 AND status = true',
       [category_id]
     );
     res.json(subcategories.rows);
@@ -33,7 +35,7 @@ const getGuideDetails = async (req, res) => {
   const { subcategory_id } = req.params;
   try {
     const guide = await database.query(
-      'SELECT * FROM recycling_guide WHERE subcategory_no = $1',
+      'SELECT guide_no, subcategory_no, guide_img, guide_content FROM recycling_guide WHERE subcategory_no = $1 AND status = true',
       [subcategory_id]
     );
     res.json(guide.rows);
