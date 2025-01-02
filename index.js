@@ -38,6 +38,9 @@ app.get('/', (req, res) => {
   res.send('Hello World');
 });
 
+// treeRoute.js 추가
+app.use(require('./routes/user/treeRoute'));
+
 // app.use(require('./routes/admin/adminRoutes'));
 app.use(require('./routes/user/userRoutes'));
 app.use(require('./routes/user/reupRoute'));
@@ -54,10 +57,10 @@ app.use(require('./routes/admin/dashboardRoute'));
 app.use(require('./routes/admin/productRoute'));
 app.use(require('./routes/admin/recycleRoute'));
 app.use(require('./routes/admin/userRoute'));
-app.use(require('./routes/admin/couponRoute'))
+app.use(require('./routes/admin/couponRoute'));
 app.use(require('./routes/admin/inquiryRoute'));
 
-// 퀴즈 
+// 퀴즈
 app.use('/quiz', quizRoutes.router);
 
 app.listen(port, () => {
