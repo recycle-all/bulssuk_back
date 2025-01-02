@@ -7,7 +7,7 @@ const cookieParser = require('cookie-parser'); // cookie-parser 추가
 const authenticateToken = require('./middleware/authenticateToken'); // 인증 미들웨어 불러오기
 const authenticateTokens = require('./middleware/middleware');
 const quizRoutes = require('./controllers/admin/quizController'); // quiz.js 경로를 알맞게 설정
-require('./scheduler'); // 스케쥴러 실행
+// require('./scheduler'); // 스케쥴러 실행
 
 const app = express();
 const port = 8001;
@@ -50,7 +50,7 @@ app.use(require('./routes/admin/adminRoute'));
 app.use(require('./routes/admin/calendarRoute'));
 app.use(require('./routes/admin/companyRoute'));
 app.use(require('./routes/admin/dashboardRoute'));
-app.use(require('./routes/admin/faqRoute'));
+// app.use(require('./routes/admin/faqRoute'));
 app.use(require('./routes/admin/productRoute'));
 app.use(require('./routes/admin/recycleRoute'));
 app.use(require('./routes/admin/userRoute'));
