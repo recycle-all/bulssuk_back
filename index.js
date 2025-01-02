@@ -8,6 +8,7 @@ const authenticateToken = require('./middleware/authenticateToken'); // 인증 �
 const authenticateTokens = require('./middleware/middleware');
 const quizRoutes = require('./controllers/admin/quizController'); // quiz.js 경로를 알맞게 설정
 // require('./scheduler'); // 스케쥴러 실행
+const ftpRoute = require('./routes/ftp/ftpRoutes'); // FTP 라우트 가져오기
 
 const app = express();
 const port = 8001;
@@ -62,6 +63,9 @@ app.use(require('./routes/admin/inquiryRoute'));
 
 // 퀴즈
 app.use('/quiz', quizRoutes.router);
+
+// FTP url
+app.use('/ftp', ftpRoute);
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
