@@ -5,6 +5,6 @@ const {
 } = require('../../controllers/user/reupController');
 
 router.get('/company', getCompanies);
-router.get('/company/:company_id', getCompanyDetails);
+router.get('/company/:company_no', getCompanyDetails);
 
 module.exports = router;

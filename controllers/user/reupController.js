@@ -6,7 +6,7 @@ dotenv.config();
 const getCompanies = async (req, res) => {
   try {
     const query = `
-      SELECT company_img, company_name
+      SELECT company_no, company_img, company_name
       FROM recycling_company
       WHERE status = true
     `;
@@ -20,7 +20,7 @@ const getCompanies = async (req, res) => {
 
 // 기업 상세 조회
 const getCompanyDetails = async (req, res) => {
-  const { company_id } = req.params;
+  const { company_no } = req.params;
 
   try {
     // 기업 정보 조회
@@ -29,7 +29,7 @@ const getCompanyDetails = async (req, res) => {
       FROM recycling_company
       WHERE company_no = $1 AND status = true
     `;
-    const companyResult = await database.query(companyQuery, [company_id]);
+    const companyResult = await database.query(companyQuery, [company_no]);
 
     if (companyResult.rows.length === 0) {
       return res.status(404).json({ message: 'Company not found' });
@@ -41,7 +41,7 @@ const getCompanyDetails = async (req, res) => {
       FROM company_product
       WHERE company_no = $1
     `;
-    const productResult = await database.query(productQuery, [company_id]);
+    const productResult = await database.query(productQuery, [company_no]);
 
     res.status(200).json({
       company: companyResult.rows[0],
