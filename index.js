@@ -51,17 +51,20 @@ app.use(require('./routes/admin/adminRoute'));
 app.use(require('./routes/admin/calendarRoute'));
 app.use(require('./routes/admin/companyRoute'));
 app.use(require('./routes/admin/dashboardRoute'));
+
 // app.use(require('./routes/admin/faqRoute'));
 app.use(require('./routes/admin/productRoute'));
 app.use(require('./routes/admin/recycleRoute'));
 app.use(require('./routes/admin/userRoute'));
 app.use(require('./routes/admin/couponRoute'))
 app.use(require('./routes/admin/inquiryRoute'));
+
 // 퀴즈 
 app.use('/quiz', quizRoutes.router);
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
 
 // ftp 
 app.use('/ftp', ftpRoutes);
+
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
+});
