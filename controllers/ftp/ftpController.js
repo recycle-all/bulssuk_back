@@ -9,6 +9,7 @@ exports.getImage = async (req, res) => {
       host: process.env.FTP_HOST, // 환경 변수에서 FTP 호스트 읽기
       user: process.env.FTP_USER, // 환경 변수에서 FTP 사용자 읽기
       password: process.env.FTP_PASSWORD, // 환경 변수에서 FTP 비밀번호 읽기
+      secure: false,
     });
 
     // FTP에서 파일을 스트림으로 가져와 클라이언트로 직접 전송
