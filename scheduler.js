@@ -1,6 +1,6 @@
 const cron = require('node-cron');
 // const faqController = require('./controllers/admin/faqController');
-// const axios = require('axios');
+const axios = require('axios');
 
 // 매주 월요일 오전 9시에 실행
 cron.schedule('* * * 1 *', async () => {
