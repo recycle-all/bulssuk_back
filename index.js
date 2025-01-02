@@ -8,6 +8,7 @@ const authenticateToken = require('./middleware/authenticateToken'); // 인증 �
 const authenticateTokens = require('./middleware/middleware');
 const quizRoutes = require('./controllers/admin/quizController'); // quiz.js 경로를 알맞게 설정
 // require('./scheduler'); // 스케쥴러 실행
+require('./ftp') // ftp 서버 실행
 
 const app = express();
 const port = 8001;
