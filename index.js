@@ -64,7 +64,7 @@ app.use(require('./routes/admin/inquiryRoute'));
 app.use('/quiz', quizRoutes.router);
 
 // FTP url
-app.use(require('./routes/ftp/ftpVoteRoutes.js'));
+app.use(require('./routes/ftp/ftpVoteRoutes'));
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
