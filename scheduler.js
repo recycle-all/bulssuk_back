@@ -1,9 +1,8 @@
 const cron = require('node-cron');
-// const faqController = require('./controllers/admin/faqController');
 const axios = require('axios');
 
-// 매주 월요일 오전 9시에 실행
-cron.schedule('* * * 1 *', async () => {
+// 매월 1일 자정에 실행
+cron.schedule('0 0 1 * *', async () => {
   try {
     console.log('Scheduler triggered: Generating FAQ data');
     const response = await axios.post('http://222.112.27.120:8001/generate');
@@ -13,8 +12,8 @@ cron.schedule('* * * 1 *', async () => {
   }
 });
 
-// 첫 번째 */5: 매 5분마다.
-// 두 번째 *: 매 시간.
-// 세 번째 *: 매일.
-// 네 번째 *: 매월.
-// 다섯 번째 *: 요일 무관.
+// 첫 번째 0: 분(자정)
+// 두 번째 0: 시간(자정)
+// 세 번째 1: 매월 1일
+// 네 번째 *: 매월
+// 다섯 번째 *: 요일 무관
