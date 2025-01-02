@@ -182,7 +182,7 @@ exports.changeDay = async (req, res) => {
   exports.createDay = async (req, res) => {
     const { calendar_name, calendar_date, calendar_content } = req.body;
     const admin_no = req.body.admin_no; // 클라이언트로부터 admin_no를 받아옴
-    const calendar_img = req.file ? req.file.path.replace(/\\/g, '/').replace('public/', '') : null;
+    const calendar_img = req.file ? req.file.path.replace(/\\/g, '/').replace('public', '') : null;
 
 
     // 현재 시간을 KST로 설정
