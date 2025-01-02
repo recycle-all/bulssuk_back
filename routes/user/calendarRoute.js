@@ -11,6 +11,7 @@ const {
   getAttendances,
   getMonthImage,
   getEvent,
+  getAlarmsForUser
 } = require('../../controllers/user/calendarController');
 
 const router = express.Router();
@@ -26,5 +27,6 @@ router.post('/attendance',updateAttendanceAndPoints)
 router.get('/attendance/:user_no/:year/:month',getAttendances)
 router.get('/month_image/:month', getMonthImage)
 router.get('/get_event/:year/:month', getEvent)
+router.get('/alarms/:user_no', getAlarmsForUser);
 module.exports = router;
 
