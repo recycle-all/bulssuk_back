@@ -100,7 +100,7 @@ exports.updateProduct = async (req, res) => {
 // 새로운 상품 등록 
 exports.createProduct = async (req, res) =>{
     const {company_no, product_name, product_content} = req.body
-    const product_img = req.file ? req.file.path.replace(/\\/g, '/').replace('public/', '') : null;
+    const product_img = req.file ? req.file.path.replace(/\\/g, '/').replace('public', '') : null;
     const created_at = new Date(); // 현재 시간 추가
     try {
         const query = `
