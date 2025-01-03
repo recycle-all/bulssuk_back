@@ -39,7 +39,7 @@ const getCompanyDetails = async (req, res) => {
     const productQuery = `
       SELECT product_img, product_name
       FROM company_product
-      WHERE company_no = $1
+      WHERE company_no = $1 AND status = true
     `;
     const productResult = await database.query(productQuery, [company_no]);
 
