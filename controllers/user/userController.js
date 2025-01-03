@@ -63,12 +63,25 @@ const signUp = async (req, res) => {
       ]
     );
 
+    // tree_history 테이블 초기화
+    await database.query(
+      `INSERT INTO tree_history 
+        (user_no, tree_status, tree_points_total) 
+        VALUES ($1, $2, $3);`,
+      [user_no, '씨앗', 0] // 초기 상태는 "씨앗", 포인트는 0
+    );
+
+    // 트랜잭션 커밋
+    await database.query('COMMIT');
+
     res.status(201).json({
       message:
         '회원 가입을 완료하였습니다. 가입 축하 포인트 100p가 지급되었습니다.',
       user_no,
     });
   } catch (error) {
+    // 트랜잭션 롤백
+    await database.query('ROLLBACK');
     console.error('Error inserting data:', error.message); // 오류 로그 추가
     res.status(500).json({ error: error.message });
   }
