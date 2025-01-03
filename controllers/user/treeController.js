@@ -14,7 +14,7 @@ const getUserNoByTreeHistoryNo = async (tree_history_no) => {
   }
 };
 
-// 나무 상태 조회
+// 나무 상태 ( 현재 나무 레벨, 내용, 이미지) 조회
 const treeState = async (req, res) => {
   const { tree_history_no } = req.body;
 
@@ -36,10 +36,25 @@ const treeState = async (req, res) => {
       return res.status(404).json({ message: '트리 상태를 찾을 수 없습니다.' });
     }
 
-    // 성공적으로 트리 상태를 조회한 경우 응답
+    // tree_info 테이블에서 tree_info 값과 tree_status가 일치하는 데이터 조회
+    const treeInfoResult = await database.query(
+      'SELECT tree_info AS tree_status, tree_content, tree_img FROM tree_info WHERE tree_info = $1',
+      [treeStatus]
+    );
+
+    const treeInfo = treeInfoResult.rows[0];
+    if (!treeInfo) {
+      return res.status(404).json({
+        message: 'tree_info 테이블에서 해당 상태를 찾을 수 없습니다.',
+      });
+    }
+
+    // 성공적으로 트리 상태 및 추가 정보를 조회한 경우 응답
     res.status(200).json({
-      message: '트리 상태를 성공적으로 조회했습니다.',
-      tree_status: treeStatus,
+      message: '트리 상태와 정보를 성공적으로 조회했습니다.',
+      tree_status: treeInfo.tree_status,
+      tree_content: treeInfo.tree_content,
+      tree_img: treeInfo.tree_img,
     });
   } catch (error) {
     console.error('Error fetching tree state:', error.message);
