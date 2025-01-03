@@ -63,12 +63,21 @@ const signUp = async (req, res) => {
       ]
     );
 
-    // tree_history 테이블 초기화
-    await database.query(
+    // tree_history 테이블 초기화 및 tree_history_no 반환
+    const treeHistoryResult = await database.query(
       `INSERT INTO tree_history 
         (user_no, tree_status, tree_points_total) 
-        VALUES ($1, $2, $3);`,
+        VALUES ($1, $2, $3) RETURNING tree_history_no;`,
       [user_no, '씨앗', 0] // 초기 상태는 "씨앗", 포인트는 0
+    );
+    const tree_history_no = treeHistoryResult.rows[0].tree_history_no;
+
+    // seed 테이블 초기화
+    await database.query(
+      `INSERT INTO seed
+      (tree_history_no, event, event_points) 
+      VALUES ($1, $2, $3);`,
+      [tree_history_no, '씨앗 생성', 0]
     );
 
     // 트랜잭션 커밋
