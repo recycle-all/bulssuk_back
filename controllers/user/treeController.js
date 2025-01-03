@@ -14,6 +14,41 @@ const getUserNoByTreeHistoryNo = async (tree_history_no) => {
   }
 };
 
+// 나무 상태 조회
+const treeState = async (req, res) => {
+  const { tree_history_no } = req.body;
+
+  try {
+    // tree_history_no로 user_no 조회
+    const user_no = await getUserNoByTreeHistoryNo(tree_history_no);
+    if (!user_no) {
+      return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+    }
+
+    // tree_status 확인
+    const treeStatusResult = await database.query(
+      'SELECT tree_status FROM tree_history WHERE tree_history_no = $1',
+      [tree_history_no]
+    );
+    const treeStatus = treeStatusResult.rows[0]?.tree_status;
+
+    if (!treeStatus) {
+      return res.status(404).json({ message: '트리 상태를 찾을 수 없습니다.' });
+    }
+
+    // 성공적으로 트리 상태를 조회한 경우 응답
+    res.status(200).json({
+      message: '트리 상태를 성공적으로 조회했습니다.',
+      tree_status: treeStatus,
+    });
+  } catch (error) {
+    console.error('Error fetching tree state:', error.message);
+    res
+      .status(500)
+      .json({ message: '트리 상태를 조회하는 동안 오류가 발생했습니다.' });
+  }
+};
+
 // 물주기 이벤트
 const waterTree = async (req, res) => {
   const { tree_history_no } = req.body; // tree_history_no를 요청에서 가져옴
@@ -605,4 +640,5 @@ module.exports = {
   levelUpToBranch,
   levelUpToTree,
   levelUpToFlower,
+  treeState,
 };

@@ -8,7 +8,11 @@ const {
   levelUpToBranch,
   levelUpToTree,
   levelUpToFlower,
+  treeState,
 } = require('../../controllers/user/treeController');
+
+// 나무 상태 조회 라우트
+router.post('/tree/state', treeState);
 
 // 물주기 라우트
 router.post('/tree/water', waterTree);
