@@ -212,7 +212,8 @@ const fetchFTPFile = (filePath, res) => {
 const getImage = (req, res) => {
   const { filename } = req.params; // 요청에서 파일명 가져오기
   // const filePath = path.join('img', filename); // FTP 디렉터리와 파일명 조합
-  const filePath = `img/${filename}`; // 슬래시로 직접 경로 조합
+  // const filePath = `img/${filename}`; // 슬래시로 직접 경로 조합
+  const filePath = `D/FTP/suddenly/img/${filename}`; // 슬래시로 직접 경로 조합
 
   console.log(`Fetching image: ${filePath}`);
   fetchFTPFile(filePath, res); // FTP에서 파일 가져오기
