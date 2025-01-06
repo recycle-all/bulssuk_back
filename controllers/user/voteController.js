@@ -150,12 +150,31 @@ const updateVote = async (req, res) => {
 
 const userVote = async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.query; // 요청에서 페이지와 한 번에 가져올 데이터 수
+    const { page = 1, limit = 10, user_no } = req.query;
     const offset = (page - 1) * limit;
+    console.log(user_no);
 
     const result = await database.query(
-      'SELECT vote_no, vote_result, img_url, vote_count, created_at FROM votes WHERE status = true ORDER BY created_at DESC LIMIT $1 OFFSET $2',
-      [limit, offset]
+      `SELECT 
+         v.vote_no, 
+         v.vote_result, 
+         v.img_url, 
+         v.vote_count, 
+         v.created_at, 
+         v.status, 
+         EXISTS (
+           SELECT 1 FROM user_votes uv 
+           WHERE uv.vote_no = v.vote_no AND uv.user_no = $1
+         ) AS user_voted,
+         CASE 
+           WHEN v.created_at <= NOW() - INTERVAL '7 days' THEN true 
+           ELSE false 
+         END AS expired
+       FROM votes v
+       WHERE v.status = true
+       ORDER BY v.created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [user_no, limit, offset]
     );
 
     res.status(200).json(result.rows);
