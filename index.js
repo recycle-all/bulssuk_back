@@ -61,6 +61,7 @@ app.use(require('./routes/admin/userRoute'));
 app.use(require('./routes/admin/couponRoute'));
 app.use(require('./routes/admin/inquiryRoute'));
 app.use(require('./routes/admin/treeRoute'));
+app.use(require('./routes/admin/shoppingRoute'))
 // 퀴즈
 app.use('/quiz', quizRoutes.router);
 
