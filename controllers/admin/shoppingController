@@ -31,3 +31,27 @@ exports.getProduct = async (req, res) => {
         return res.status(500).json({ error: error.message }); // 에러 처리
     }
 };
+
+exports.getPointForUser = async (req, res) =>{
+    const {user_no} = req.query
+    try {
+        const pointResult = await database.query(
+            `SELECT point_total FROM point WHERE user_no = $1 ORDER BY created_at DESC LIMIT 1`,[user_no]
+        )
+        return res.status(200).json(pointResult.rows);
+    } catch (error) {
+        return res.status(500).json({ error: error.message }); // 에러 처리
+    }
+}
+
+exports.getUserCoupons = async (req, res) =>{
+    const {user_no} = req.query
+    try {
+        const couponResult = await database.query(
+            `SELECT * FROM user_coupon WHERE user_no = $1 AND status = true`,[user_no]
+        )
+        return res.status(200).json(couponResult.rows)
+    } catch (error) {
+        return res.status(500).json({ error: error.message }); // 에러 처리
+    }
+}
