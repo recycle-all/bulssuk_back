@@ -65,9 +65,6 @@ app.use(require('./routes/admin/shoppingRoute'))
 // 퀴즈
 app.use('/quiz', quizRoutes.router);
 
-// FTP url
-app.use(require('./routes/ftp/ftpVoteRoutes'));
-
 // 투표 routes
 app.use(require('./routes/user/voteRoute'));
 
