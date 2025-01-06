@@ -146,14 +146,15 @@ exports.getFunction = async (req, res) =>{
 // 각 기능 정보 수정하기
 exports.updateFunction = async (req, res) =>{
     try {
+
         const {tree_manage_no, admin_no, tree_manage, manage_points} = req.body
         const updated_at = new Date();
         const imageFile = req.file;
-
     // 필수값 검증
-    if (!tree_manage_no || !admin_no || tree_manage || manage_points){
+    if (!tree_manage_no || !admin_no || !tree_manage || !manage_points){
         return res.status(400).json({meesage: 'tree_manange_no, admin_no, tree_manage, manage_points는 필수입니다. '})
     }
+
 
     // 기본 쿼리 및 매개변수
     let query = `
@@ -166,7 +167,7 @@ exports.updateFunction = async (req, res) =>{
     // 이미지 파일 처리 
     if (imageFile) {
         const newImagePath = `/uploads/images/${imageFile.filename}`;
-        query += `, manage = $5 WHERE tree_manage_no = $6 RETURNING *`
+        query += `, manage_img = $5 WHERE tree_manage_no = $6 RETURNING *`
         values.push(newImagePath, tree_manage_no)
     } else {
         query += `WHERE tree_manage_no = $5 RETURNING *`;
