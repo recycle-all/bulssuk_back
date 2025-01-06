@@ -486,16 +486,17 @@ const getAlarmsForUser = async (req, res) => {
     const result = await database.query(
       `
       SELECT 
-        user_no, 
-        user_calendar_name, 
-        TO_CHAR(user_calendar_date, 'YYYY-MM-DD') AS user_calendar_date, -- 날짜만 반환
-        user_calendar_every, 
-        user_calendar_memo, 
-        user_calendar_list, 
-        status 
-      FROM user_calendar 
-      WHERE user_no = $1 
-      AND created_at BETWEEN $2 AND $3
+  user_no, 
+  user_calendar_name, 
+  TO_CHAR(user_calendar_date, 'YYYY-MM-DD') AS user_calendar_date,
+  TO_CHAR(user_calendar_time, 'HH24:MI:SS') AS user_calendar_time, -- 시간 포맷
+  user_calendar_every, 
+  user_calendar_memo, 
+  user_calendar_list, 
+  status 
+FROM user_calendar 
+WHERE user_no = $1 
+AND created_at BETWEEN $2 AND $3;
       `,
       [user_no, startDate, endDate]
     );
