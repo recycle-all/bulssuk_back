@@ -87,52 +87,66 @@ const treeState = async (req, res) => {
 // 물주기 이벤트
 const waterTree = async (req, res) => {
   const { user_no } = req.body; // user_no를 요청에서 가져옴
+  console.log('Received user_no:', user_no);
 
   if (!user_no) {
+    console.log('Error: user_no가 누락되었습니다.');
     return res.status(400).json({ message: 'user_no가 누락되었습니다.' });
   }
 
   try {
     // user_no로 tree_history_no 조회
+    console.log('Fetching tree_history_no for user_no:', user_no);
     const treeHistoryNos = await getTreeHistoryNoByUserNo(user_no);
+    console.log('Retrieved treeHistoryNos:', treeHistoryNos);
+
     if (!treeHistoryNos || treeHistoryNos.length === 0) {
+      console.log('Error: 트리 히스토리를 찾을 수 없습니다.');
       return res
         .status(404)
         .json({ message: '트리 히스토리를 찾을 수 없습니다.' });
     }
 
-    // 하나의 트리 히스토리만 처리한다고 가정 (여러 개일 경우 추가 처리 필요)
     const tree_history_no = treeHistoryNos[0];
+    console.log('Using tree_history_no:', tree_history_no);
 
     // 트랜잭션 시작
+    console.log('Starting transaction...');
     await database.query('BEGIN');
 
     // 사용자 포인트 확인
+    console.log('Checking user points for user_no:', user_no);
     const pointResult = await database.query(
-      'SELECT point_total FROM point WHERE user_no = $1',
+      'SELECT point_total FROM point WHERE user_no = $1 ORDER BY created_at DESC LIMIT 1',
       [user_no]
     );
     const userPoints = pointResult.rows[0]?.point_total || 0;
+    console.log('User points:', userPoints);
 
     if (userPoints < 10) {
+      console.log('Error: 포인트 부족.');
       await database.query('ROLLBACK');
       return res.status(400).json({ message: '포인트가 부족합니다.' });
     }
 
     // tree_status 확인
+    console.log('Fetching tree status for tree_history_no:', tree_history_no);
     const treeStatusResult = await database.query(
       'SELECT tree_status FROM tree_history WHERE tree_history_no = $1',
       [tree_history_no]
     );
     const treeStatus = treeStatusResult.rows[0]?.tree_status;
+    console.log('Tree status:', treeStatus);
 
     if (!treeStatus) {
+      console.log('Error: 트리 상태를 찾을 수 없습니다.');
       await database.query('ROLLBACK');
       return res.status(400).json({ message: '트리 상태를 찾을 수 없습니다.' });
     }
 
     const event = '물주기';
     const eventPoints = 10;
+    console.log('Event:', event, ', Event Points:', eventPoints);
 
     const eventTable =
       treeStatus === '씨앗'
@@ -145,7 +159,10 @@ const waterTree = async (req, res) => {
         ? 'tree'
         : null;
 
+    console.log('Determined eventTable:', eventTable);
+
     if (!eventTable) {
+      console.log('Error: 알 수 없는 트리 상태:', treeStatus);
       await database.query('ROLLBACK');
       return res
         .status(400)
@@ -153,12 +170,14 @@ const waterTree = async (req, res) => {
     }
 
     // 이벤트 기록
+    console.log(`Inserting event record into ${eventTable}`);
     await database.query(
       `INSERT INTO ${eventTable} (tree_history_no, event, event_points, created_at) VALUES ($1, $2, $3, NOW())`,
       [tree_history_no, event, eventPoints]
     );
 
     // tree_history 테이블 업데이트
+    console.log('Updating tree_history points total...');
     await database.query(
       'UPDATE tree_history SET tree_points_total = tree_points_total + 10 WHERE tree_history_no = $1',
       [tree_history_no]
@@ -167,24 +186,28 @@ const waterTree = async (req, res) => {
     // 포인트 차감
     const cost = 10;
     const newPointTotal = userPoints - cost;
+    console.log('Deducting points:', cost, 'New Total Points:', newPointTotal);
     await database.query(
       `INSERT INTO point (user_no, point_status, point_amount, point_total, point_reason, created_at) VALUES ($1, $2, $3, $4, $5, NOW())`,
       [user_no, 'DELETE', -cost, newPointTotal, '물주기']
     );
 
     // 트랜잭션 커밋
+    console.log('Committing transaction...');
     await database.query('COMMIT');
+    console.log('Watering event successfully completed.');
     res.status(200).json({
       message: '물주기 이벤트가 성공적으로 완료되었습니다.',
       remainingPoints: newPointTotal,
     });
   } catch (error) {
     try {
+      console.error('Error encountered:', error.message);
       await database.query('ROLLBACK');
+      console.log('Transaction rolled back.');
     } catch (rollbackError) {
       console.error('Rollback Error:', rollbackError.message);
     }
-    console.error('Error during water event:', error.message);
     res
       .status(500)
       .json({ message: '물주기 이벤트 처리 중 오류가 발생했습니다.' });
@@ -215,7 +238,7 @@ const sunlightTree = async (req, res) => {
 
     // 사용자 포인트 확인
     const pointResult = await database.query(
-      'SELECT point_total FROM point WHERE user_no = $1',
+      'SELECT point_total FROM point WHERE user_no = $1 ORDER BY created_at DESC LIMIT 1',
       [user_no]
     );
     const userPoints = pointResult.rows[0]?.point_total || 0;
@@ -321,7 +344,7 @@ const fertilizerTree = async (req, res) => {
 
     // 사용자 포인트 확인
     const pointResult = await database.query(
-      'SELECT point_total FROM point WHERE user_no = $1',
+      'SELECT point_total FROM point WHERE user_no = $1 ORDER BY created_at DESC LIMIT 1',
       [user_no]
     );
     const userPoints = pointResult.rows[0]?.point_total || 0;
