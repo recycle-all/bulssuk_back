@@ -713,5 +713,5 @@ module.exports = {
   getTotalPoints,
   getPoints,
   userCoupon,
-  viewFaq
+  viewFaq,
 };
