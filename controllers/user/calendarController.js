@@ -86,9 +86,8 @@ const addAlarm = async (req, res) => {
     user_calendar_memo,
     user_calendar_date,
     user_calendar_list,
+    user_calendar_time,
   } = req.body;
-
-  console.log('Received user_calendar_date:', user_calendar_date); // 디버깅용 출력
 
   try {
     const userResult = await database.query(
@@ -114,16 +113,22 @@ const addAlarm = async (req, res) => {
       return res.status(400).json({ message: 'Invalid date format.' });
     }
 
+    // 시간 형식 변환 (HH:MM)
+    const formattedTime = user_calendar_time
+      ? user_calendar_time.slice(0, 5) // "13:20:00" -> "13:20"
+      : null;
+
     // 데이터베이스에 삽입
     const result = await database.query(
-      `INSERT INTO user_calendar (user_no, user_calendar_name, user_calendar_every, user_calendar_memo, user_calendar_date, created_at, status, user_calendar_list) 
-       VALUES ($1, $2, $3, $4, $5, NOW(), TRUE, $6) RETURNING *`,
+      `INSERT INTO user_calendar (user_no, user_calendar_name, user_calendar_every, user_calendar_memo, user_calendar_date, user_calendar_time, created_at, status, user_calendar_list) 
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), TRUE, $7) RETURNING *`,
       [
         user_no,
         user_calendar_name,
         user_calendar_every,
         user_calendar_memo,
         parsedDate.toISOString().split('T')[0], // YYYY-MM-DD 형식
+        formattedTime, // 시간 변환된 값
         user_calendar_list,
       ]
     );
@@ -144,6 +149,7 @@ const updateAlarm = async (req, res) => {
     user_calendar_every,
     user_calendar_memo,
     user_calendar_list,
+    user_calendar_time,
   } = req.body;
 
   try {
@@ -165,20 +171,27 @@ const updateAlarm = async (req, res) => {
       return res.status(400).json({ message: 'user_calendar_no is required.' });
     }
 
+    // 시간 형식 변환 (HH:MM)
+    const formattedTime = user_calendar_time
+      ? user_calendar_time.slice(0, 5) // "13:20:00" -> "13:20"
+      : null;
+
     // 업데이트 쿼리
     const result = await database.query(
       `UPDATE user_calendar
        SET user_calendar_name = $1, 
            user_calendar_every = $2, 
            user_calendar_memo = $3,
-           user_calendar_list = $4
-       WHERE user_no = $5 AND user_calendar_no = $6
+           user_calendar_list = $4,
+           user_calendar_time = $5
+       WHERE user_no = $6 AND user_calendar_no = $7
        RETURNING *`,
       [
         user_calendar_name,
         user_calendar_every,
         user_calendar_memo,
         user_calendar_list, // 활성화/비활성화 여부
+        formattedTime,
         user_no,
         user_calendar_no, // 메모를 식별
       ]
@@ -218,7 +231,7 @@ const getAlarms = async (req, res) => {
     const user_no = userResult.rows[0].user_no;
 
     const result = await database.query(
-      `SELECT user_calendar_name, user_calendar_memo, user_calendar_every, user_calendar_date, user_calendar_list, created_at
+      `SELECT user_calendar_name, user_calendar_memo, user_calendar_every, user_calendar_date, user_calendar_list, TO_CHAR(user_calendar_time, 'HH24:MI') AS user_calendar_time, created_at
        FROM user_calendar WHERE user_no = $1 AND status = true ORDER BY user_calendar_date DESC, created_at DESC`,
       [user_no]
     );
@@ -232,6 +245,7 @@ const getAlarms = async (req, res) => {
 
 // 특정 날짜의 알람 리스트 가져오기
 const getAlarmsByDate = async (req, res) => {
+  console.log('API 요청 받음:', req.query); // 요청 로그
   const { user_id, user_calendar_date } = req.query;
 
   if (!user_id || !user_calendar_date) {
@@ -252,14 +266,11 @@ const getAlarmsByDate = async (req, res) => {
 
     const user_no = userResult.rows[0].user_no;
 
-    console.log('Request user_id:', user_id);
-    console.log('Request user_calendar_date:', user_calendar_date);
-
     const result = await database.query(
       `SELECT user_calendar_no, user_calendar_name, user_calendar_memo, 
-              user_calendar_every, user_calendar_date, user_calendar_list
+              user_calendar_every, user_calendar_date, user_calendar_list, TO_CHAR(user_calendar_time, 'HH24:MI') AS user_calendar_time
        FROM user_calendar 
-       WHERE user_no = $1 AND user_calendar_date = $2
+       WHERE user_no = $1 AND user_calendar_date = $2 AND status = true
        ORDER BY created_at DESC`,
       [user_no, user_calendar_date]
     );
@@ -319,36 +330,36 @@ const deactivateAlarm = async (req, res) => {
 // 출석체크와 포인트 지급 동시
 const updateAttendanceAndPoints = async (req, res) => {
   const { user_no } = req.body;
-  console.log("Request Body:", req.body);
+  console.log('Request Body:', req.body);
 
   try {
     const now = new Date();
-    const today = now.toISOString().split("T")[0]; // 오늘 날짜 (YYYY-MM-DD 형식)
-    console.log("Today:", today);
+    const today = now.toISOString().split('T')[0]; // 오늘 날짜 (YYYY-MM-DD 형식)
+    console.log('Today:', today);
 
     // 중복 체크: 동일 날짜에 이미 출석 체크된 경우 처리
     const duplicateCheck = await database.query(
-      "SELECT * FROM attendance WHERE user_no = $1 AND attendance_date = $2",
+      'SELECT * FROM attendance WHERE user_no = $1 AND attendance_date = $2',
       [user_no, today]
     );
-    console.log("Duplicate Check Result:", duplicateCheck.rows);
+    console.log('Duplicate Check Result:', duplicateCheck.rows);
 
     if (duplicateCheck.rows.length > 0) {
       return res
         .status(400)
-        .json({ message: "이미 오늘 출석 체크가 완료되었습니다." });
+        .json({ message: '이미 오늘 출석 체크가 완료되었습니다.' });
     }
 
     // 출석 체크 기록 추가
     const attendanceResult = await database.query(
-      "INSERT INTO attendance (user_no, attendance_date, status) VALUES ($1, $2, $3) RETURNING *",
+      'INSERT INTO attendance (user_no, attendance_date, status) VALUES ($1, $2, $3) RETURNING *',
       [user_no, today, true]
     );
-    console.log("Attendance Insert Result:", attendanceResult.rows[0]);
+    console.log('Attendance Insert Result:', attendanceResult.rows[0]);
 
     // 포인트 추가 로직
     const previousPoint = await database.query(
-      "SELECT point_total FROM point WHERE user_no = $1 ORDER BY created_at DESC LIMIT 1",
+      'SELECT point_total FROM point WHERE user_no = $1 ORDER BY created_at DESC LIMIT 1',
       [user_no]
     );
     const lastPointTotal =
@@ -356,18 +367,18 @@ const updateAttendanceAndPoints = async (req, res) => {
     const pointAmount = 10; // 절대값으로 포인트 추가 (10)
 
     const pointResult = await database.query(
-      "INSERT INTO point (user_no, point_status, point_amount, point_total, point_reason, created_at, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
+      'INSERT INTO point (user_no, point_status, point_amount, point_total, point_reason, created_at, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
       [
         user_no,
-        "ADD", // 포인트 상태
+        'ADD', // 포인트 상태
         pointAmount,
         lastPointTotal + pointAmount, // 이전 값에 포인트 추가
-        "출석체크", // 포인트 사유
+        '출석체크', // 포인트 사유
         now, // 생성된 날짜
         true, // 기본값 true
       ]
     );
-    console.log("Point Insert Result:", pointResult.rows[0]);
+    console.log('Point Insert Result:', pointResult.rows[0]);
 
     res.json({
       attendance: attendanceResult.rows[0],
@@ -375,11 +386,11 @@ const updateAttendanceAndPoints = async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error");
+    res.status(500).send('Server error');
   }
 };
 
-// 해당하는 달의 출석체크 모두 가져오기 
+// 해당하는 달의 출석체크 모두 가져오기
 const getAttendances = async (req, res) => {
   const { user_no, year, month } = req.params; // URL에서 user_no, year, month 추출
 
@@ -398,7 +409,9 @@ const getAttendances = async (req, res) => {
     res.status(200).json(result.rows);
   } catch (error) {
     console.error('Error fetching attendance data:', error);
-    res.status(500).json({ message: '서버 오류로 데이터를 가져오지 못했습니다.' });
+    res
+      .status(500)
+      .json({ message: '서버 오류로 데이터를 가져오지 못했습니다.' });
   }
 };
 
@@ -451,12 +464,14 @@ const getEvent = async (req, res) => {
     }
 
     // UTC -> KST 변환 및 calendar_img 파일 이름만 추출
-    const adjustedRows = result.rows.map(row => ({
+    const adjustedRows = result.rows.map((row) => ({
       ...row,
-      calendar_date: moment(row.calendar_date).tz('Asia/Seoul').format('YYYY-MM-DD'), // KST 변환
+      calendar_date: moment(row.calendar_date)
+        .tz('Asia/Seoul')
+        .format('YYYY-MM-DD'), // KST 변환
       calendar_img: row.calendar_img ? row.calendar_img.split('/').pop() : null, // 파일 이름만 추출
     }));
-    console.log(adjustedRows)
+    console.log(adjustedRows);
     res.status(200).json(adjustedRows);
   } catch (error) {
     console.error('Error fetching custom day data:', error.message);
@@ -524,5 +539,5 @@ module.exports = {
   getAttendances,
   getMonthImage,
   getEvent,
-  getAlarmsForUser
+  getAlarmsForUser,
 };
