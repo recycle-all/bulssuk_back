@@ -3,6 +3,7 @@ const nodemailer = require('nodemailer'); // nodemailer
 const dotenv = require('dotenv');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { closeSync } = require('fs');
 dotenv.config();
 
 const idCheck = async (req, res) => {
@@ -493,61 +494,48 @@ const getInquiries = async (req, res) => {
   }
 };
 
-// 토탈 포인트
+// 포인트 조회
 const getTotalPoints = async (req, res) => {
   try {
-    // 토큰에서 userNo 가져오기
-    const userNo = req.user?.userNo;
+    const userNo = req.user?.userNo; // JWT에서 가져온 사용자 고유 번호
 
     if (!userNo) {
-      return res
-        .status(400)
-        .json({ message: '유효하지 않은 사용자 요청입니다.' });
+      return res.status(401).json({ message: '로그인이 필요합니다.' });
     }
 
-    // 트랜잭션 시작
-    await database.query('BEGIN');
-
-    // SQL 쿼리: 최신 포인트와 모든 포인트 내역 조회
+    // 포인트 조회 쿼리
     const query = `
-      SELECT 
-        point_status, 
-        point_amount, 
-        point_total,         -- ✅ 당시 보유 포인트 추가
-        point_reason,
-        TO_CHAR(created_at, 'YY-MM-DD HH24:MI') AS created_at
-      FROM point 
-      WHERE user_no = $1 
-      ORDER BY created_at DESC;
-    `;
+          SELECT 
+              point_total 
+          FROM point
+          WHERE user_no = $1
+          ORDER BY created_at DESC
+          LIMIT 1
+      `;
     const values = [userNo];
     const result = await database.query(query, values);
 
-    // 포인트 내역이 없는 경우
+    // 결과 확인 및 응답 처리
     if (result.rows.length === 0) {
-      await database.query('ROLLBACK');
-      return res.status(404).json({ message: '포인트 내역이 없습니다.' });
+      return res
+        .status(404)
+        .json({ message: '포인트 내역이 존재하지 않습니다.' });
     }
 
-    // 트랜잭션 커밋
-    await database.query('COMMIT');
-
-    // ✅ 최신 포인트와 모든 포인트 내역 반환
-    const totalPoints = result[0]?.point_total; // 최신 포인트
     return res.status(200).json({
-      message: '총 포인트 조회 성공',
-      totalPoints,
-      points: result.rows, // ✅ 포인트 내역 전체 반환 (당시 보유 포인트 포함)
+      message: '포인트 조회에 성공했습니다.',
+      totalPoints: result.rows[0].point_total,
     });
   } catch (error) {
-    await database.query('ROLLBACK'); // 오류 발생 시 롤백
-    console.error('Error fetching total points:', error.message);
+    console.error('포인트 조회 중 오류 발생:', error.message);
     return res.status(500).json({
       message: '서버 오류가 발생했습니다.',
       error: error.message,
     });
   }
 };
+
+module.exports = { getTotalPoints };
 
 // 포인트 상세내역 (최신 내역 조회 포함)
 const getPoints = async (req, res) => {
@@ -567,6 +555,7 @@ const getPoints = async (req, res) => {
         point_status, 
         point_amount,
         point_reason,
+        point_total,
         TO_CHAR(created_at, 'YY-MM-DD HH24:MI') AS created_at
       FROM point
       WHERE user_no = $1
@@ -668,51 +657,6 @@ const userCoupon = async (req, res) => {
   }
 };
 
-const viewFaq = async (req, res) => {
-  try {
-    const result = await database.query(
-      `
-      SELECT f.faq_no, f.question, f.answer, c.category_id, c.category_name
-      FROM faq f
-      JOIN faq_categories c ON f.category_id = c.category_id
-      WHERE f.is_approved = $1
-      ORDER BY f.faq_no DESC
-      `,
-      ['채택 완료'] // '채택 완료' 상태만 필터링
-    );
-
-    // 데이터를 카테고리별로 그룹화
-    const groupedData = result.rows.reduce((acc, faq) => {
-      const categoryId = faq.category_id;
-      const categoryName = faq.category_name;
-
-      // 카테고리가 이미 acc에 없으면 추가
-      if (!acc[categoryId]) {
-        acc[categoryId] = {
-          title: categoryName,
-          questions: [],
-        };
-      }
-
-      // 질문 추가
-      acc[categoryId].questions.push({
-        question: faq.question,
-        answer: faq.answer,
-      });
-
-      return acc;
-    }, {});
-
-    // 객체를 배열로 변환
-    const responseData = Object.values(groupedData);
-
-    res.status(200).json(responseData);
-  } catch (error) {
-    console.error('Error fetching FAQ:', error);
-    res.status(500).json({ message: 'Error fetching FAQ' });
-  }
-};
-
 module.exports = {
   emailAuth,
   verifyNumber,
@@ -730,5 +674,4 @@ module.exports = {
   getTotalPoints,
   getPoints,
   userCoupon,
-  viewFaq,
 };
