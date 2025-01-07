@@ -5,7 +5,7 @@ const axios = require('axios');
 exports.getAllFaq = async (req, res) => {
   try {
     const inquiryResult = await database.query(
-      'SELECT * FROM inquiry WHERE status = true'
+      'SELECT * FROM inquiry WHERE status = true ORDER BY question_no ASC;'
     );
     return res.status(200).json(inquiryResult.rows);
   } catch (error) {
