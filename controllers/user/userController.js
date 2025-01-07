@@ -668,6 +668,51 @@ const userCoupon = async (req, res) => {
   }
 };
 
+const viewFaq = async (req, res) => {
+  try {
+    const result = await database.query(
+      `
+      SELECT f.faq_no, f.question, f.answer, c.category_id, c.category_name
+      FROM faq f
+      JOIN faq_categories c ON f.category_id = c.category_id
+      WHERE f.is_approved = $1
+      ORDER BY f.faq_no DESC
+      `,
+      ['채택 완료'] // '채택 완료' 상태만 필터링
+    );
+
+    // 데이터를 카테고리별로 그룹화
+    const groupedData = result.rows.reduce((acc, faq) => {
+      const categoryId = faq.category_id;
+      const categoryName = faq.category_name;
+
+      // 카테고리가 이미 acc에 없으면 추가
+      if (!acc[categoryId]) {
+        acc[categoryId] = {
+          title: categoryName,
+          questions: [],
+        };
+      }
+
+      // 질문 추가
+      acc[categoryId].questions.push({
+        question: faq.question,
+        answer: faq.answer,
+      });
+
+      return acc;
+    }, {});
+
+    // 객체를 배열로 변환
+    const responseData = Object.values(groupedData);
+
+    res.status(200).json(responseData);
+  } catch (error) {
+    console.error('Error fetching FAQ:', error);
+    res.status(500).json({ message: 'Error fetching FAQ' });
+  }
+};
+
 module.exports = {
   emailAuth,
   verifyNumber,
@@ -685,4 +730,5 @@ module.exports = {
   getTotalPoints,
   getPoints,
   userCoupon,
+  viewFaq,
 };
