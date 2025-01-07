@@ -49,6 +49,7 @@ const uploadVote = async (req, res) => {
 const updateVote = async (req, res) => {
   try {
     const { user_no, vote_no, option } = req.body;
+    const today = new Date().toISOString().split('T')[0];
 
     // 사용자가 이미 투표했는지 확인
     const existingVote = await database.query(
