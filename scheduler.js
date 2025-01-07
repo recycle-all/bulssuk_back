@@ -2,7 +2,7 @@ const cron = require('node-cron');
 const axios = require('axios');
 
 // 매월 1일 자정에 실행
-cron.schedule('22 * * * *', async () => {
+cron.schedule('42 * * * *', async () => {
   try {
     console.log('Scheduler triggered: Generating FAQ data');
     const response = await axios.post('http://222.112.27.120:8001/generate');
