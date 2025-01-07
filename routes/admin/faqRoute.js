@@ -10,6 +10,11 @@ const {
   deactivateInquiry,
   deactivateAnswer,
   generateFAQ,
+  getAllFaqs,
+  getEachFaq,
+  getFaqCategories,
+  getFaqCategoryName,
+  ChangeFaqState,
 } = require('../../controllers/admin/faqController');
 
 // 문의내역 관련 API
@@ -29,4 +34,12 @@ router.put('/deactivate_answer', deactivateAnswer);
 // FAQ 생성
 router.post('/generate', generateFAQ);
 
+// FAQ 가져오기
+router.get('/all_faqs', getAllFaqs)
+router.get('/faq/:faq_no',getEachFaq)
+// FAQ 카테고리 가져오기
+router.get('/faq_categories', getFaqCategories)
+router.get('/faq_category_name/:category_id', getFaqCategoryName)
+// FAQ 상태 변경
+router.put('/change_faq_state',ChangeFaqState)
 module.exports = router;
