@@ -499,35 +499,48 @@ const getTotalPoints = async (req, res) => {
     // 토큰에서 userNo 가져오기
     const userNo = req.user?.userNo;
 
-    // userNo가 없는 경우 에러 처리
     if (!userNo) {
       return res
         .status(400)
         .json({ message: '유효하지 않은 사용자 요청입니다.' });
     }
 
-    // SQL 쿼리: 특정 유저의 총 포인트 조회
+    // 트랜잭션 시작
+    await database.query('BEGIN');
+
+    // SQL 쿼리: 최신 포인트와 모든 포인트 내역 조회
     const query = `
-      SELECT point_total 
+      SELECT 
+        point_status, 
+        point_amount, 
+        point_total,         -- ✅ 당시 보유 포인트 추가
+        point_reason,
+        TO_CHAR(created_at, 'YY-MM-DD HH24:MI') AS created_at
       FROM point 
       WHERE user_no = $1 
-      ORDER BY created_at DESC 
-      LIMIT 1;
+      ORDER BY created_at DESC;
     `;
     const values = [userNo];
     const result = await database.query(query, values);
 
-    // 데이터 반환
+    // 포인트 내역이 없는 경우
     if (result.rows.length === 0) {
+      await database.query('ROLLBACK');
       return res.status(404).json({ message: '포인트 내역이 없습니다.' });
     }
 
-    const totalPoints = result.rows[0].point_total;
+    // 트랜잭션 커밋
+    await database.query('COMMIT');
+
+    // ✅ 최신 포인트와 모든 포인트 내역 반환
+    const totalPoints = result[0]?.point_total; // 최신 포인트
     return res.status(200).json({
       message: '총 포인트 조회 성공',
       totalPoints,
+      points: result.rows, // ✅ 포인트 내역 전체 반환 (당시 보유 포인트 포함)
     });
   } catch (error) {
+    await database.query('ROLLBACK'); // 오류 발생 시 롤백
     console.error('Error fetching total points:', error.message);
     return res.status(500).json({
       message: '서버 오류가 발생했습니다.',
@@ -536,17 +549,19 @@ const getTotalPoints = async (req, res) => {
   }
 };
 
-// 포인트 상세내역
+// 포인트 상세내역 (최신 내역 조회 포함)
 const getPoints = async (req, res) => {
   try {
     const userNo = req.user?.userNo; // JWT에서 가져온 사용자 고유 번호
-    // console.log('userNo:', userNo);
 
     if (!userNo) {
       return res.status(401).json({ message: '로그인이 필요합니다.' });
     }
 
-    // 포인트 내역 조회
+    // 트랜잭션 시작 (최신 데이터 보장을 위해)
+    await database.query('BEGIN');
+
+    // 포인트 내역 조회 (최신 내역 잠금)
     const query = `
       SELECT 
         point_status, 
@@ -556,12 +571,19 @@ const getPoints = async (req, res) => {
       FROM point
       WHERE user_no = $1
       ORDER BY created_at DESC
+      LIMIT 100
+      FOR UPDATE;
     `;
-    const values = [userNo];
-    // console.log('Query Values:', values);
 
+    const values = [userNo];
     const result = await database.query(query, values);
-    // console.log('Query Result:', result.rows);
+
+    // 트랜잭션 커밋 (최신 데이터 조회 후 안전하게 커밋)
+    await database.query('COMMIT');
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: '포인트 내역이 없습니다.' });
+    }
 
     // 응답 데이터 반환
     return res.status(200).json({
@@ -569,6 +591,7 @@ const getPoints = async (req, res) => {
       points: result.rows,
     });
   } catch (error) {
+    await database.query('ROLLBACK'); // 오류 발생 시 롤백
     console.error('Error fetching points:', error.message);
     return res.status(500).json({
       message: '서버 오류가 발생했습니다.',
