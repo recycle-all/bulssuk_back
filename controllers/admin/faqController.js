@@ -268,3 +268,100 @@ exports.generateFAQ = async (req = null, res = null) => {
     if (res) res.status(500).json({ error: 'Failed to generate FAQ' });
   }
 };
+
+// 모든 자동생성된 FAQ 가져오기 
+exports.getAllFaqs = async(req, res) =>{
+  try {
+      const inquiryResult = await database.query(
+          'SELECT * FROM faq ORDER BY faq_no ASC'
+      );
+      return res.status(200).json(inquiryResult.rows)
+  } catch (error) {
+      return res.status(500).json({ error: error.message });
+  }
+}
+
+// 각 FAQ 가져오기
+exports.getEachFaq = async(req,res)=>{
+  const {faq_no} = req.params
+  try {
+      const inquiryResult = await database.query(
+          'SELECT * FROM faq WHERE faq_no=$1',[faq_no]
+      )
+      return res.status(200).json(inquiryResult.rows)
+  } catch (error) {
+      return res.status(500).json({ error: error.message });
+  }
+} 
+
+// FAQ 카테고리 가져오기
+exports.getFaqCategories = async(req, res)=>{
+  try {
+      const categoryResult = await database.query('SELECT * FROM faq_categories')
+      return res.status(200).json(categoryResult.rows)
+  } catch (error) {
+      return res.status(500).json({ error: error.message });
+  }
+}
+
+// FAQ 카테고리 이름 가져오기
+exports.getFaqCategoryName = async(req, res) =>{
+  const { category_id } = req.params
+  try {
+      const categoryResult = await database.query('SELECT category_name FROM faq_categories WHERE category_id = $1', [category_id])
+      return res.status(200).json(categoryResult.rows)
+  } catch (error) {
+      return res.status(500).json({ error: error.message });
+  }
+}
+// FAQ 상태값 변경
+exports.ChangeFaqState = async (req, res) => {
+  const { faq_no, category_id, action } = req.body; // 요청에서 데이터 가져오기
+
+  if (!faq_no || !action) {
+    return res.status(400).json({ message: 'faq_no와 action은 필수입니다.' });
+  }
+
+  try {
+    // 현재 시간 가져오기
+    const updated_at = new Date();
+
+    if (action === '채택') {
+      if (!category_id) {
+        return res.status(400).json({ message: '카테고리를 선택해야 합니다.' });
+      }
+
+      // 카테고리가 선택된 상태에서 '채택' 처리
+      await database.query(
+        `
+        UPDATE faq
+        SET category_id = $1, is_approved = $2, updated_at = $3
+        WHERE faq_no = $4
+        `,
+        [category_id, '채택 완료', updated_at, faq_no]
+      );
+
+      return res.status(200).json({ message: 'FAQ가 채택 완료로 업데이트되었습니다.' });
+    } else if (action === '반려') {
+      // '반려' 처리
+      await database.query(
+        `
+        UPDATE faq
+        SET is_approved = $1, updated_at = $2
+        WHERE faq_no = $3
+        `,
+        ['반려', updated_at, faq_no]
+      );
+
+      return res.status(200).json({ message: 'FAQ가 반려 상태로 업데이트되었습니다.' });
+    } else {
+      return res.status(400).json({ message: '유효하지 않은 action 값입니다.' });
+    }
+  } catch (error) {
+    console.error('Error updating FAQ state:', error);
+    return res.status(500).json({ message: 'FAQ 상태 업데이트 중 오류가 발생했습니다.' });
+  }
+};
+
+// FAQ 반려
+
