@@ -15,6 +15,7 @@ const {
   getFaqCategories,
   getFaqCategoryName,
   ChangeFaqState,
+  updateFaq,
 } = require('../../controllers/admin/faqController');
 
 // 문의내역 관련 API
@@ -42,4 +43,6 @@ router.get('/faq_categories', getFaqCategories)
 router.get('/faq_category_name/:category_id', getFaqCategoryName)
 // FAQ 상태 변경
 router.put('/change_faq_state',ChangeFaqState)
+// FAQ 수정
+router.put('/update_faq',updateFaq)
 module.exports = router;
