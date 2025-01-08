@@ -187,10 +187,10 @@ exports.generateFAQ = async (req = null, res = null) => {
 
     // 1. 질문 및 답변 데이터 조회
     const query = `
-          SELECT i.question_no, i.question_title, i.question_content, a.answer_content
-          FROM inquiry i
-          JOIN answer a ON i.question_no = a.question_no
-        `;
+        SELECT i.question_no, i.question_title, i.question_content, a.answer_content
+        FROM inquiry i
+        JOIN answer a ON i.question_no = a.question_no
+      `;
     const results = await database.query(query);
 
     // 2. 기존 FAQ 데이터 조회
@@ -202,63 +202,32 @@ exports.generateFAQ = async (req = null, res = null) => {
       (row) => row.question
     );
 
-    // 3. FastAPI 서버로 클러스터링 요청
+    // 3. FastAPI 서버로 클러스터링 요청 (기존 질문 포함)
     const response = await axios.post('http://222.112.27.120:5005/similarity', {
       questions: results.rows.map((row) => ({
         question_no: row.question_no,
         text: `${row.question_content}`,
         answer: row.answer_content,
       })),
+      existing_questions: existingQuestions, // 기존 질문 리스트 포함
     });
 
-    const clusters = response.data; // FastAPI에서 반환된 데이터
+    const generatedFaqs = response.data.generated_faqs; // FastAPI에서 반환된 FAQ 데이터
 
-    // 4. 클러스터링 결과 처리
-    for (const [clusterId, clusterItems] of Object.entries(clusters)) {
-      let selectedQuestion = null;
-      let selectedAnswer = null;
-
-      // 5. 유사도 기반 중복 판별
-      for (const item of clusterItems) {
-        const similarityResponse = await axios.post(
-          'http://222.112.27.120:5005/check_similarity',
-          {
-            new_question: item.text,
-            existing_questions: existingQuestions,
-          }
-        );
-
-        if (similarityResponse.data.is_duplicate) {
-          console.log(`중복된 질문입니다 : "${item.text}"`);
-          continue; // 중복인 경우 삽입하지 않음
-        }
-        if (!similarityResponse.data.is_duplicate) {
-          selectedQuestion = item.text;
-          selectedAnswer = item.answer;
-          break; // 중복이 아닌 질문을 찾으면 반복 종료
-        }
+    // 4. FastAPI에서 반환된 FAQ 데이터 삽입
+    for (const faq of generatedFaqs) {
+      if (!faq.question || !faq.answer) {
+        console.log('Invalid FAQ detected. Skipping.');
+        continue; // 질문이나 답변이 없으면 건너뜀
       }
 
-      // 적합한 질문을 찾지 못한 경우 클러스터 건너뛰기
-      if (!selectedQuestion) {
-        console.log(
-          `All questions in cluster ${clusterId} are duplicates. Skipping.`
-        );
-        continue;
-      }
-
-      // 6. 중복이 아니면 데이터 삽입
       const insertQuery = `
-            INSERT INTO faq (question, answer, is_approved)
-            VALUES ($1, $2, $3)
-          `;
-      await database.query(insertQuery, [
-        selectedQuestion,
-        selectedAnswer,
-        '대기중',
-      ]);
+          INSERT INTO faq (question, answer, is_approved)
+          VALUES ($1, $2, $3)
+        `;
+      await database.query(insertQuery, [faq.question, faq.answer, '대기중']);
 
-      console.log(`New FAQ inserted: "${selectedQuestion}"`);
+      console.log(`New FAQ inserted: "${faq.question}"`);
     }
 
     if (res)
