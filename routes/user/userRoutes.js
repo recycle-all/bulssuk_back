@@ -18,6 +18,7 @@ const {
   getPoints,
   userCoupon,
   viewFaq,
+  dashboardTreeState,
 } = require('../../controllers/user/userController');
 const authenticateToken = require('../../middleware/authenticateToken');
 
@@ -47,7 +48,8 @@ router.get('/history_point', authenticateToken, getPoints); // 포인트 사용�
 // 쿠폰 관련 라우트
 router.get('/user_coupon', authenticateToken, userCoupon); // 쿠폰 조회
 
-// FAQ 조회 라우트
-router.get('/view_faq', viewFaq);
+// 마이페이지 관련 라우트
+router.get('/dashboard_tree', authenticateToken, dashboardTreeState); // 대쉬보드 나의 나무상태 조회
+router.get('/view_faq', viewFaq); // FAQ 조회
 
 module.exports = router;
