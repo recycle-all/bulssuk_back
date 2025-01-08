@@ -726,6 +726,32 @@ const levelUpToFlower = async (req, res) => {
   }
 };
 
+// 물주기, 햇빛쐬기, 비료주기 이미지 조회
+const TreeManage = async (req, res) => {
+  try {
+    // tree_manage 테이블에서 모든 데이터 조회
+    const result = await database.query(
+      'SELECT tree_manage_no, tree_manage, manage_points, manage_img FROM tree_manage WHERE status = true'
+    );
+
+    if (result.rows.length === 0) {
+      return res
+        .status(404)
+        .json({ message: 'tree_manage 데이터를 찾을 수 없습니다.' });
+    }
+
+    res.status(200).json({
+      message: 'tree_manage 데이터를 성공적으로 조회했습니다.',
+      data: result.rows,
+    });
+  } catch (error) {
+    console.error('Error fetching tree_manage:', error.message);
+    res.status(500).json({
+      message: 'tree_manage 데이터를 조회하는 동안 오류가 발생했습니다.',
+    });
+  }
+};
+
 module.exports = {
   getUserNoByTreeHistoryNo,
   waterTree,
@@ -737,4 +763,5 @@ module.exports = {
   levelUpToFlower,
   treeState,
   getTreeHistoryNoByUserNo,
+  TreeManage,
 };

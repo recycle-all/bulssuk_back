@@ -10,6 +10,7 @@ const {
   levelUpToTree,
   levelUpToFlower,
   treeState,
+  TreeManage,
 } = require('../../controllers/user/treeController');
 
 // 나무 상태 조회 라우트
@@ -35,5 +36,8 @@ router.post('/tree/level_tree', levelUpToTree, authenticateToken);
 
 // 나무 > 꽃 라우트
 router.post('/tree/level_flower', levelUpToFlower, authenticateToken);
+
+// 물주기, 햇빛쐬기, 비료주기 이미지 조회 라우트
+router.get('/tree/manage', TreeManage);
 
 module.exports = router;
