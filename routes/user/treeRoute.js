@@ -10,7 +10,9 @@ const {
   levelUpToTree,
   levelUpToFlower,
   treeState,
-  TreeManage,
+  treeManage,
+  availableCoupons,
+  selectCoupon,
 } = require('../../controllers/user/treeController');
 
 // 나무 상태 조회 라우트
@@ -38,6 +40,12 @@ router.post('/tree/level_tree', levelUpToTree, authenticateToken);
 router.post('/tree/level_flower', levelUpToFlower, authenticateToken);
 
 // 물주기, 햇빛쐬기, 비료주기 이미지 조회 라우트
-router.get('/tree/manage', TreeManage);
+router.get('/tree/manage', treeManage);
+
+// 쿠폰 조회 라우트
+router.get('/tree/coupon', availableCoupons);
+
+// 쿠폰 등록 라우트
+router.post('/tree/select_coupon', selectCoupon);
 
 module.exports = router;

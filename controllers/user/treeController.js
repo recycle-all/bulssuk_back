@@ -727,7 +727,7 @@ const levelUpToFlower = async (req, res) => {
 };
 
 // 물주기, 햇빛쐬기, 비료주기 이미지 조회
-const TreeManage = async (req, res) => {
+const treeManage = async (req, res) => {
   try {
     // tree_manage 테이블에서 모든 데이터 조회
     const result = await database.query(
@@ -752,6 +752,55 @@ const TreeManage = async (req, res) => {
   }
 };
 
+// 쿠폰 조회
+const availableCoupons = async (req, res) => {
+  try {
+    // 쿠폰 데이터 조회
+    const couponResult = await database.query(
+      'SELECT coupon_no, coupon_name, coupon_type FROM coupon_management WHERE status = true'
+    );
+
+    if (couponResult.rows.length === 0) {
+      return res.status(404).json({ message: '사용 가능한 쿠폰이 없습니다.' });
+    }
+
+    res.status(200).json({
+      message: '사용 가능한 쿠폰 조회 성공',
+      coupons: couponResult.rows,
+    });
+  } catch (error) {
+    console.error('Error during coupon retrieval:', error.message);
+    res.status(500).json({ message: '쿠폰 조회 중 오류가 발생했습니다.' });
+  }
+};
+
+// 쿠폰 등록
+const selectCoupon = async (req, res) => {
+  console.log('selectCoupon endpoint hit'); // 로그 추가
+  console.log('Request Body:', req.body); // 요청 바디 확인
+
+  const { user_no, coupon_no } = req.body;
+
+  if (!user_no || !coupon_no) {
+    return res
+      .status(400)
+      .json({ message: 'user_no 또는 coupon_no가 누락되었습니다.' });
+  }
+
+  try {
+    // 쿠폰 등록
+    await database.query(
+      'INSERT INTO user_coupon (user_no, coupon_no, issued_at, is_used, status) VALUES ($1, $2, NOW(), false, true)',
+      [user_no, coupon_no]
+    );
+
+    res.status(200).json({ message: '쿠폰이 성공적으로 등록되었습니다.' });
+  } catch (error) {
+    console.error('Error during coupon selection:', error.message);
+    res.status(500).json({ message: '쿠폰 등록 중 오류가 발생했습니다.' });
+  }
+};
+
 module.exports = {
   getUserNoByTreeHistoryNo,
   waterTree,
@@ -763,5 +812,7 @@ module.exports = {
   levelUpToFlower,
   treeState,
   getTreeHistoryNoByUserNo,
-  TreeManage,
+  treeManage,
+  availableCoupons,
+  selectCoupon,
 };
