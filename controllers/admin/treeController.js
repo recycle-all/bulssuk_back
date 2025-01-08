@@ -4,7 +4,7 @@ const database = require('../../database/database')
 // 모든 나무 레벨 정보 가져오기 
 exports.getAllTrees = async(req,res) =>{
     try {
-        const treeResult = await database.query(`SELECT * FROM tree_info WHERE status = true`)
+        const treeResult = await database.query(`SELECT * FROM tree_info WHERE status = true ORDER BY tree_info_no ASC`)
         return res.status(200).json(treeResult.rows); 
     } catch (error) {
         return res.status(500).json({ error: error.message });
@@ -127,7 +127,7 @@ exports.deactivateTree = async(req, res) =>{
 // 모든 기능 정보 가져오기
 exports.getAllFunctions = async (req,res) =>{
     try {
-        const functionResult = await database.query(`SELECT * FROM tree_manage WHERE status = true`)
+        const functionResult = await database.query(`SELECT * FROM tree_manage WHERE status = true ORDER BY tree_manage_no ASC`)
         return res.status(200).json(functionResult.rows); 
     } catch (error) {
         return res.status(500).json({ error: error.message });
