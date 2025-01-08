@@ -603,7 +603,8 @@ const userCoupon = async (req, res) => {
     // SQL 쿼리 작성
     const query = `
       SELECT 
-        cm.coupon_name AS name, 
+        cm.coupon_name AS name,
+        cm.coupon_img AS imageUrl, -- 이미지 URL 추가
         TO_CHAR(cm.expiration_date, 'YYYY-MM-DD') AS expirationDate
       FROM 
         user_coupon uc
