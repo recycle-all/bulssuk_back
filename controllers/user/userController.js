@@ -623,7 +623,7 @@ const userCoupon = async (req, res) => {
     const result = await database.query(query, values);
 
     if (result.rows.length === 0) {
-      console.log('No coupons found for User No:', userNo);
+      // console.log('No coupons found for User No:', userNo);
       return res.status(404).json({
         success: false,
         message: '쿠폰 데이터가 없습니다.',
@@ -657,6 +657,50 @@ const userCoupon = async (req, res) => {
   }
 };
 
+// 대쉬보드 나무상태
+const dashboardTreeState = async (req, res) => {
+  const userNo = req.user?.userNo;
+
+  if (!userNo) {
+    console.log('❌ userNo가 제공되지 않았습니다.');
+    return res.status(400).json({ message: 'userNo가 필요합니다.' });
+  }
+
+  try {
+    console.log('🗄️ 데이터베이스 쿼리 실행 시작');
+    const result = await database.query(
+      `SELECT th.tree_status, ti.tree_content, ti.tree_img 
+           FROM tree_history th
+           JOIN tree_info ti ON th.tree_status = ti.tree_info
+           WHERE th.user_no = $1
+           ORDER BY th.created_at DESC 
+           LIMIT 1`,
+      [userNo]
+    );
+
+    if (result.rows.length === 0) {
+      console.log('사용자의 나무 상태를 찾을 수 없습니다.');
+      return res
+        .status(404)
+        .json({ message: '해당 사용자의 나무 상태를 찾을 수 없습니다.' });
+    }
+
+    const { tree_status, tree_content, tree_img } = result.rows[0];
+    console.log('나무 상태 데이터 전송 완료');
+    res.status(200).json({
+      dashboard_tree_status: tree_status,
+      dashboard_tree_content: tree_content,
+      dashboard_tree_img: tree_img,
+    });
+  } catch (error) {
+    console.error('대시보드 나무 상태 조회 중 오류 발생:', error);
+    res
+      .status(500)
+      .json({ message: '서버 내부 오류로 나무 상태를 불러오지 못했습니다.' });
+  }
+};
+
+// FAQ
 const viewFaq = async (req, res) => {
   try {
     const result = await database.query(
@@ -714,4 +758,5 @@ module.exports = {
   getPoints,
   userCoupon,
   viewFaq,
+  dashboardTreeState,
 };
