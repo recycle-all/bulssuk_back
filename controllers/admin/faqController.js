@@ -295,7 +295,7 @@ exports.ChangeFaqState = async (req, res) => {
     // 현재 시간 가져오기
     const updated_at = new Date();
 
-    if (action === '채택') {
+    if (action === '채택 완료') {
       if (!category_id) {
         return res.status(400).json({ message: '카테고리를 선택해야 합니다.' });
       }
@@ -332,5 +332,52 @@ exports.ChangeFaqState = async (req, res) => {
   }
 };
 
-// FAQ 반려
+// FAQ 수정
+exports.updateFaq = async (req, res) => {
+  try {
+    const { faq_no, category_id, is_approved } = req.body;
+
+    // 요청 데이터 검증
+    if (!faq_no || !is_approved) {
+      return res.status(400).json({ message: 'FAQ 번호와 승인 상태는 필수 항목입니다.' });
+    }
+
+    // 유효한 승인 상태 값인지 확인
+    const validStatuses = ['채택 완료', '반려', '대기중'];
+    if (!validStatuses.includes(is_approved)) {
+      return res.status(400).json({ message: `유효하지 않은 승인 상태 값입니다: ${is_approved}` });
+    }
+
+    // 업데이트할 필드 설정
+    const updates = [];
+    if (category_id !== undefined) {
+      updates.push(`category_id = ${category_id ? `'${category_id}'` : 'NULL'}`);
+    }
+    updates.push(`is_approved = '${is_approved}'`);
+
+    const updateQuery = `
+      UPDATE faq
+      SET ${updates.join(', ')}, updated_at = NOW()
+      WHERE faq_no = $1
+      RETURNING *;
+    `;
+
+    // 데이터베이스에서 FAQ 업데이트
+    const result = await database.query(updateQuery, [faq_no]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'FAQ를 찾을 수 없습니다.' });
+    }
+
+    // 성공적으로 업데이트된 데이터 반환
+    return res.status(200).json({
+      message: 'FAQ가 성공적으로 업데이트되었습니다.',
+      data: result.rows[0],
+    });
+  } catch (error) {
+    console.error('Error updating FAQ:', error);
+    return res.status(500).json({ message: 'FAQ 업데이트 중 오류가 발생했습니다.', error: error.message });
+  }
+};
+
 
