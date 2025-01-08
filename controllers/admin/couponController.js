@@ -4,7 +4,7 @@ const database = require('../../database/database')
 exports.getCoupons = async(req, res) =>{
     try {
         const couponResult = await database.query(
-            'SELECT * FROM coupon_management WHERE status = true'
+            'SELECT * FROM coupon_management WHERE status = true ORDER BY coupon_no ASC'
         )
         return res.status(200).json(couponResult.rows)
     } catch (error) {
