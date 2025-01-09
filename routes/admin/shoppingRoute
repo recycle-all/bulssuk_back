@@ -4,7 +4,7 @@ const router = express.Router();
 
 const multer = require('multer');
 const path = require('path');
-const { getAllProducts, getProduct, getPointForUser, getUserCoupons } = require('../../controllers/admin/shoppingController');
+const { getAllProducts, getProduct, getPointForUser, getUserCoupons, getCompanyName, getProductPoint } = require('../../controllers/admin/shoppingController');
 // multer 설정: 원본 파일명 + 타임스탬프로 저장
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -23,4 +23,6 @@ router.get('/shopping_products',getAllProducts)
 router.get('/shopping_product', getProduct)
 router.get('/shopping_point', getPointForUser)
 router.get('/shopping_coupon', getUserCoupons)
+router.get('/company_name', getCompanyName);
+router.get('/product_point', getProductPoint);
 module.exports = router;
