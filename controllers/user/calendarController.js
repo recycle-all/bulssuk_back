@@ -367,15 +367,13 @@ const updateAttendanceAndPoints = async (req, res) => {
     const pointAmount = 10; // 절대값으로 포인트 추가 (10)
 
     const pointResult = await database.query(
-      'INSERT INTO point (user_no, point_status, point_amount, point_total, point_reason, created_at, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      'INSERT INTO point (user_no, point_status, point_amount, point_total, point_reason) VALUES ($1, $2, $3, $4, $5) RETURNING *',
       [
         user_no,
         'ADD', // 포인트 상태
         pointAmount,
         lastPointTotal + pointAmount, // 이전 값에 포인트 추가
         '출석체크', // 포인트 사유
-        now, // 생성된 날짜
-        true, // 기본값 true
       ]
     );
     console.log('Point Insert Result:', pointResult.rows[0]);
