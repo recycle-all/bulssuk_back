@@ -614,6 +614,7 @@ const userCoupon = async (req, res) => {
         uc.coupon_no = cm.coupon_no
       WHERE 
         uc.user_no = $1
+        AND uc.status = TRUE
       ORDER BY 
         cm.expiration_date ASC;
     `;
